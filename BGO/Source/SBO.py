@@ -232,22 +232,31 @@ class SBO:
 	    scratch: matrix where scratch[i,:] is the solution of the linear system
                      Ly=B[j,:].transpose() (See above for the definition of B and L)
         """
-
 	
-        opt=op.OptSteepestDescent(n1=self.opt.dimXsteepest,projectGradient=self.opt.projectGradient,
-				  stopFunction=self.opt.functionConditionOpt,xStart=start,
-				  xtol=self.opt.xtol)
-
         def g(x,grad,onlyGradient=False):
-            return self.opt.functionGradientAscentVn(x,grad,self._VOI,i,L,temp2,a,
+            return self.opt.functionGradientAscentVn(x,i=i,VOI=self._VOI,L=L,temp2=temp2,a=a,
 						 scratch=scratch,onlyGradient=onlyGradient,
 						 kern=self.stat._k,XW=self.dataObj.Xhist,
-						 Bfunc=self.stat.B)
+						 Bfunc=self.stat.B,grad=grad)
 
-        opt.run(f=g)
+	if self.opt.MethodVn=="SLSQP":
+	    opt=op.SLSP(start)
+	    def g1(x):
+		return -1.0*g(x,grad=False)
+	    
+	    def dg(x):
+		return -1.0*g(x,grad=True,onlyGradient=True)
+	    
+	    cons=self.opt.consVn
+	    opt.run(f=g1,df=dg,cons=cons)
+	else:
+	    opt=op.OptSteepestDescent(n1=self.opt.dimXsteepestVn,projectGradient=self.opt.projectGradient,
+				      stopFunction=self.opt.functionConditionOpt,xStart=start,
+				      xtol=self.opt.xtol)
+	    opt.run(f=g)
+
+
         self.optRuns.append(opt)
-        xTrans=self.opt.transformationDomainX(opt.xOpt[0:1,0:self.opt.dimXsteepest])
-        self.optPointsArray.append(xTrans)
 
     def getParametersOptVoi(self,i):
 	"""
@@ -295,7 +304,7 @@ class SBO:
         """
 	n1=self._n1
 	n2=self._dimW
-	Xst=self.Obj.sampleFromX(1)
+	Xst=self.Obj.sampleFromXVn(1)
 	wSt=self.Obj.simulatorW(1)
 	x1=Xst[0:0+1,:]
 	w1=wSt[0:0+1,:]
@@ -321,7 +330,7 @@ class SBO:
             n2=self._dimW
 	    tempN=self.numberTraining+i
 
-            Xst=self.Obj.sampleFromX(nStart)
+            Xst=self.Obj.sampleFromXVn(nStart)
             wSt=self.Obj.simulatorW(nStart)
 	    XWst=np.concatenate((Xst,wSt),1)
 	    args3=self.getParametersOptVoi(i)
@@ -339,7 +348,6 @@ class SBO:
             print "Ctrl+c received, terminating and joining pool."
             pool.terminate()
             pool.join()
-	jobs[0].get()
         for j in range(nStart):
             try:
                 self.optRuns.append(jobs[j].get())
@@ -366,20 +374,33 @@ class SBO:
                         expectations of np.exp(-alpha2[j]*((z-W[i,j])**2))
                         where W[i,:] is a point in the history.
         """
-        opt=op.OptSteepestDescent(n1=self.opt.dimXsteepest,projectGradient=self.opt.projectGradient,
-				  xStart=start,xtol=self.opt.xtol,
-				  stopFunction=self.opt.functionConditionOpt)
+
         tempN=i+self.numberTraining
 
         def g(x,grad,onlyGradient=False):
             return self.opt.functionGradientAscentAn(x,grad,self.stat,i,L,self.dataObj,
 						     onlyGradient=onlyGradient,
 						     logproductExpectations=logProduct)
+	if self.opt.MethodAn=="SLSQP":
+	    opt=op.SLSP(start)
+	    def g1(x):
+		return -1.0*g(x,grad=False)
+	    
+	    def dg(x):
+		return -1.0*g(x,grad=True,onlyGradient=True)
+	    
+	    cons=self.opt.consAn
+	    opt.run(f=g1,df=dg,cons=cons)
+	else:
+	    opt=op.OptSteepestDescent(n1=self.opt.dimXsteepestAn,projectGradient=self.opt.projectGradient,
+				  xStart=start,xtol=self.opt.xtol,
+				  stopFunction=self.opt.functionConditionOpt)
+	    opt.run(f=g)
 
-        opt.run(f=g)
+        #opt.run(f=g)
         self.optRuns.append(opt)
-        xTrans=self.opt.transformationDomainX(opt.xOpt[0:1,0:self.opt.dimXsteepest])
-        self.optPointsArray.append(xTrans)
+       # xTrans=self.opt.transformationDomainXAn(opt.xOpt[0:1,0:self.opt.dimXsteepestAn])
+       # self.optPointsArray.append(xTrans)
     
     def optAnnoParal(self,i,logProd=True):
 	"""
@@ -403,7 +424,7 @@ class SBO:
 	else:
 	    logProduct=None
 
-	Xst=self.Obj.sampleFromX(1)
+	Xst=self.Obj.sampleFromXAn(1)
 	args2={}
 	args2['i']=i
 	args2['L']=L
@@ -439,7 +460,7 @@ class SBO:
 	    args3['i']=i
 	    args3['L']=L
 	    args3['logProduct']=logProduct
-	    Xst=self.Obj.sampleFromX(nStart)
+	    Xst=self.Obj.sampleFromXAn(nStart)
             jobs = []
             pool = mp.Pool(processes=numProcesses)
             for j in range(nStart):

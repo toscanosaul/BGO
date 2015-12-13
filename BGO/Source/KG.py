@@ -65,17 +65,24 @@ class KG:
     ###start is a matrix of one row
     ###
     def optimizeVOI(self,start, i,L,temp1,temp2,a):
-        opt=op.OptSteepestDescent(n1=self.opt.dimXsteepest,projectGradient=self.opt.projectGradient,
-				  xStart=start,xtol=self.opt.xtol,stopFunction=self.opt.functionConditionOpt)
+      #  opt=op.OptSteepestDescent(n1=self.opt.dimXsteepest,projectGradient=self.opt.projectGradient,
+	#			  xStart=start,xtol=self.opt.xtol,stopFunction=self.opt.functionConditionOpt)
 
         def g(x,grad,onlyGradient=False):
             return self.opt.functionGradientAscentVn(x,grad,self._VOI,i,L,self.dataObj,self.stat._k,
 						     temp1,temp2,a,
 						     onlyGradient)
-        opt.run(f=g)
-        self.optRuns.append(opt)
-        xTrans=self.opt.transformationDomainX(opt.xOpt[0:1,0:self.opt.dimXsteepest])
-        self.optPointsArray.append(xTrans)
+        if self.opt.MethodVn=="SLSQP":
+	    opt=op.SLSP(start)
+	    def g1(x):
+		return -1.0*g(x,grad=False)
+	    def dg(x):
+		return -1.0*g(x,grad=True,onlyGradient=True)
+	    cons=self.opt.consVn
+	    opt.run(f=g1,df=dg,cons=cons)
+
+	self.optRuns.append(opt)
+
         
     def getParametersOptVoi(self,i):
 	tempN=self.numberTraining+i
@@ -111,13 +118,12 @@ class KG:
     def optVOInoParal(self,i):
 	n1=self._n1
 	args3=self.getParametersOptVoi(i)
-	Xst=self.Obj.sampleFromX(1)
+	Xst=self.Obj.sampleFromXVn(1)
 	st=Xst[0:1,:]
 	self.optRuns.append(misc.VOIOptWrapper(self,st,**args3))
 	fl.writeNewPointKG(self,self.optRuns[0])
 	
-        self.optRuns=[]
-        self.optPointsArray=[]
+
 
     def optVOIParal(self,i,nStart,numProcesses=None):
         try:
@@ -125,7 +131,7 @@ class KG:
           #  n2=self._dimW
          #   dim=self.dimension
 	    args3=self.getParametersOptVoi(i)
-	    Xst=self.Obj.sampleFromX(nStart)
+	    Xst=self.Obj.sampleFromXVn(nStart)
             jobs = []
             pool = mp.Pool(processes=numProcesses)
             for j in range(nStart):
@@ -155,16 +161,24 @@ class KG:
         
         
     def optimizeAn(self,start,i,L,temp1):
-        opt=op.OptSteepestDescent(n1=self.opt.dimXsteepest,projectGradient=self.opt.projectGradient,
-				  xStart=start,xtol=self.opt.xtol,stopFunction=self.opt.functionConditionOpt)
+       # opt=op.OptSteepestDescent(n1=self.opt.dimXsteepest,projectGradient=self.opt.projectGradient,
+#				  xStart=start,xtol=self.opt.xtol,stopFunction=self.opt.functionConditionOpt)
         tempN=i+self.numberTraining
         def g(x,grad,onlyGradient=False):
             return self.opt.functionGradientAscentAn(x,grad,self.dataObj,
 						       self.stat,i,L,temp1,onlyGradient)
-        opt.run(f=g)
+        
+	if self.opt.MethodAn=="SLSQP":
+	    opt=op.SLSP(start)
+	    def g1(x):
+		return -1.0*g(x,grad=False)
+	    def dg(x):
+		return -1.0*g(x,grad=True,onlyGradient=True)
+	    cons=self.opt.consAn
+	    opt.run(f=g1,df=dg,cons=cons)
+	    
         self.optRuns.append(opt)
-        xTrans=self.opt.transformationDomainX(opt.xOpt[0:1,0:self.opt.dimXsteepest])
-        self.optPointsArray.append(xTrans)
+
     
     def optAnnoParal(self,i):
 	tempN=self.numberTraining+i
@@ -181,7 +195,7 @@ class KG:
 	y=self.dataObj.yHist[0:tempN,:]
 	temp1=linalg.solve_triangular(L,np.array(y)-muStart,lower=True)
 	args3['temp1']=temp1
-	Xst=self.Obj.sampleFromX(1)
+	Xst=self.Obj.sampleFromXAn(1)
 	self.optRuns.append(misc.AnOptWrapper(self,Xst[0:1,:],**args3))
 	fl.writeSolution(self,self.optRuns[0])
     
@@ -201,7 +215,7 @@ class KG:
 	    y=self.dataObj.yHist[0:tempN,:]
 	    temp1=linalg.solve_triangular(L,np.array(y)-muStart,lower=True)
 	    args3['temp1']=temp1
-	    Xst=self.Obj.sampleFromX(nStart)
+	    Xst=self.Obj.sampleFromXAn(nStart)
             jobs = []
             pool = mp.Pool(processes=numProcesses)
             

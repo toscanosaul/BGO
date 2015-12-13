@@ -34,7 +34,7 @@ class Optimization:
         self.opt(**kwargs)
     
         
-    def opt(self,f=None,fp=None):
+    def opt(self,f=None,fp=None,cons=None):
 	"""
 	Optimizes f.
 	
@@ -44,6 +44,26 @@ class Optimization:
 	"""
         raise NotImplementedError, "optimize needs to be implemented"
     
+
+class SLSP(Optimization):
+    def __init__(self,xStart):
+	Optimization.__init__(self,xStart)
+	self.Name="SLSP"
+	
+    def opt(self,f=None,df=None,cons=None):
+        statuses = ['Converged', 'Maximum number of f evaluations reached', 'Error']
+
+	optResult=minimize(f,self.xStart,jac=df,constraints=cons,method='SLSQP')
+
+        self.xOpt=np.array(optResult.x).reshape([1,len(optResult.x)])
+
+
+        self.fOpt = -1.0*optResult.fun
+        self.gradOpt=optResult.jac
+        self.nIterations=optResult.nit
+       # self.status=statuses[optResult[2]['warnflag']]
+	return 0
+
 
 class OptBFGS(Optimization):
     def __init__(self, xStart,maxfun=1e4,gtol=None,bfgsFactor=None):

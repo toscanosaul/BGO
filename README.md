@@ -5,14 +5,12 @@ Ph.D. Student, Cornell University
 
 **SOFTWARE**
 
-Bayesian Global Optimization (BGO): Stratified Bayesian Optimization
-(SBO), Knowledge Gradient (KG), Expected Improvement (EI) and
-Probability Improvement (PI).
-
-**DOWNLOAD!!!**Code in Python (in preparation): [BGO.](BGO.zip)
+Bayesian Global Optimization (BGO) includes four algorithms: 
+Stratified Bayesian Optimization(SBO), Knowledge Gradient (KG), 
+Expected Improvement (EI) and Probability Improvement (PI).
 
 **BGO** is a Bayesian Global Optimization framework written in Python,
-developed by Saul Toscano-Palmerin and Peter I. Frazier. The library
+developed by Saul Toscano-Palmerin. The library
 includes four different algorithms: SBO, KG, EI and PI.
 
 **SBO** is a new algorithm proposed by [Toscano-Palmerin and
@@ -41,22 +39,8 @@ examples where we need to decide how to optimally allocate
 computational/experimental effort across information sources, to
 optimize functions.
 
-To use any of the previous algorithms is necessary to define 6 objects:
-
-**Objobj**: Objective object (See inter.py).
-
-**miscObj**: Miscellaneous object (See inter.py).
-
-**VOIobj:** Value of Information function object (See VOI.py).
-
-**optObj:** Opt object (See inter.py).
-
-**statObj**: Statistical object (See stat.py).
-
-**dataObj:** Data object (See inter.py).
-
-See the citiBikeExample files for examples. In this example, we consider
-a queuing simulation based on New York City's Bike system, in which
+See CitiBike directory for one example otimized using this library. 
+In this example, we consider a queuing simulation based on New York City's Bike system, in which
 system users may remove an available bike from a station at one location
 within the city, and ride it to a station with an available dock in some
 other location within the city. The optimization problem that we
@@ -67,39 +51,4 @@ the rider could not find an available bike at their preferred
 origination station, or could not find an available dock at their
 preferred destination station. We call such trips "negatively affected
 trips".
-
-![alt tag](http://toscanosaul.github.io/saul/map.png) **Bike stations in NYC.**
-
-To run SBO on this example, we only need to write
-
-**python citiBikeExample.py randomSeed nT nF nIterations Parallel
-nRestarts**
-
-where nT: number of training data; nF: number of samples to estimate F;
-nIterations: number of iterations; Parallel: T if the code is run in
-paralllel; F otherwise. On OS, the code can't be run in parallel because
-there are problems with the function dot in numpy.; nRestarts: Number
-that the optimization algorithms used to optimize the VOI and the answer
-are restart. This parameters should be given only when Parallel is T.
-(e.g. python citiBikeExample.py 3 7 15 2 T 10).
-
-To run the KG on this example, we only need to write
-
-**python citiBikeExampleKG.py randomSeed nT nF nIterations Parallel
-nRestarts**
-
-where the parameters are defined above.
-
-The output of the algorithm is saved in the directory
-Results15AveragingSamples7TrainingPoints/KG/randomSeedrun or
-Results15AveragingSamples7TrainingPoints/SBO/randomSeedrun,
-respectively. These directories contain 10 files: hyperparameters.txt
-(hyperparameters of the kernel), optAngrad.txt (gradients of the mean of
-the GP at the values found by the algorithm), optimalSolutions.txt
-(proposed solutions by the algorithm),optimalValues.txt (values of the
-proposed solutions with their variances), optVOIgrad.txt (gradients of
-the VOI at the values found by the algorithm), varHist.txt (variances of
-the past observations), XHist.txt (past observations), yhist.txt (past
-observations).
-
 

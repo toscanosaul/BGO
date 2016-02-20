@@ -39,7 +39,7 @@ examples where we need to decide how to optimally allocate
 computational/experimental effort across information sources, to
 optimize functions.
 
-See CitiBike directory for one example otimized using this library. 
+See the CitiBike directory for one example otimized using this library. 
 In this example, we consider a queuing simulation based on New York City's Bike system, in which
 system users may remove an available bike from a station at one location
 within the city, and ride it to a station with an available dock in some

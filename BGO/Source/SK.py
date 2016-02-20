@@ -303,8 +303,6 @@ class SEK:
                 self.optRuns.append(jobs[i].get())
             except Exception as e:
                 print "what"
-
-
         if len(self.optRuns):
             i = np.argmin([o.fOpt for o in self.optRuns])
             temp=self.optRuns[i].xOpt

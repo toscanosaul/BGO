@@ -14,7 +14,17 @@ from scipy import linalg
 from numpy import linalg as LA
 from scipy.stats import norm
 from . import gradients
+import matplotlib;matplotlib.rcParams['figure.figsize'] = (8,6)
+from matplotlib import pyplot as plt
+import os
+import pylab
+import matplotlib
 
+font = {'family' : 'normal',
+         # 'weight' : 'bold',
+         'size'   : 50}
+
+matplotlib.rc('font', **font)
 
 class VOI:
     def __init__(self,numberTraining):
@@ -346,17 +356,58 @@ class VOISBO(VOI):
                             inv=temp1,scratch=scratch1,grad=True,
                             kern=kern,XW=XW)
 
-class EI(VOI):
-    def __init__(self,gradXKern,*args,**kargs):
-        VOI.__init__(self,*args,**kargs)
-        self.VOI_name="EI"
-        self._GP=stat.EIGP(kernel=self._k,dimPoints=self._dimKernel,
-                       Xhist=self._PointsHist, dimKernel=self._dimKernel,
-                       yHist=self._yHist,noiseHist=self._noiseHist,numberTraining=self._numberTraining,
-                       gradXKern=gradXKern)
+    ####Check SBO only for analytic example
+###fix plotVOI
+    def plotVOI(self,n,L,path,data,temp2,a,scratch,kern,XW,B,m,points):
+        w1=np.linspace(min(-0.5,-np.max(abs(XW[:,1])))-1.0,max(0.5,np.max(abs(XW[:,1])))+1.0,m)
+        C,D=np.meshgrid(points,w1)
+        z=np.zeros((m,m))
+        for j in xrange(m):
+            for k in xrange(m): 
+                z[j,k]=self.VOIfunc(n,np.array([[C[j,k],D[j,k]]]),False,L,temp2,a,scratch,kern,XW,B)
         
-    def varN(self,x,n,L,temp2,temp5=None,grad=False):
-        temp=self._k.K(np.array(x).reshape((1,self.n1)))
+        
+        fig=plt.figure()
+        num_levels = 5
+        fig.set_size_inches(24, 24)
+        CS=plt.contourf(C,D,z,num_levels,cmap=plt.cm.PRGn)
+        plt.colorbar(CS)
+        Xp=XW[0:self._numberTraining,0]
+        Wp=XW[0:self._numberTraining,1]
+        pylab.plot(Xp,Wp,'o',color='red',markersize=30,label="Training point")
+        if n>0:
+            Xp=XW[self._numberTraining:self._numberTraining+n,0]
+            Wp=XW[self._numberTraining:self._numberTraining+n,1]
+            pylab.plot(Xp,Wp,'o',color='firebrick',markersize=30,label="Chosen point")
+        ax = plt.subplot(111)
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0+box.height*0.1, box.width, box.height*0.9])
+
+        # Put a legend to the right of the current axis
+        ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.09),ncol=2)
+        plt.xlabel('x',fontsize=60)
+        plt.ylabel('w',fontsize=60)
+        plt.savefig(os.path.join(path,'%d'%n+"VOI.pdf"))
+
+        plt.close(fig)
+
+
+class EI(VOI):
+    def __init__(self,dimX,gradXKern=None,SEK=True,*args,**kargs):
+        VOI.__init__(self,*args,**kargs)
+        self.n1=dimX
+        self.VOI_name="EI"
+        
+        if gradXKern is not None:
+            self.gradXKern=gradXKern
+        
+        if SEK:
+            self.gradXKern=gradients.gradXKernelSEK
+            
+        
+    def varN(self,x,n,L,temp2,kern,temp5=None,grad=False):
+        muStart=kern.mu
+        temp=kern.K(np.array(x).reshape((1,self.n1)))
         tempN=self._numberTraining+n
     #    sigmaVec=np.zeros((tempN,1))
       #  for i in xrange(tempN):
@@ -381,7 +432,8 @@ class EI(VOI):
             gradVar=-2.0*gradi
             return res,gradVar
         
-    def muN(self,x,n,L,temp1,temp2,temp5=None,grad=False,onlyGrad=False):
+    def muN(self,x,n,L,temp1,temp2,kern,temp5=None,grad=False,onlyGrad=False):
+        muStart=kern.mu
         x=np.array(x).reshape((1,self.n1))
         m=1
         tempN=self._numberTraining+n
@@ -400,7 +452,7 @@ class EI(VOI):
             
             for j in xrange(self.n1):
                # temp5=linalg.solve_triangular(L,gradX[:,j].T,lower=True)
-                gradi[j]=muStart+np.dot(temp5[j,:],temp1)
+                gradi[j]=np.dot(temp5[j,:],temp1)
             
         
         if onlyGrad:
@@ -428,30 +480,31 @@ class EI(VOI):
     def VOIfunc(self,n,pointNew,grad,maxObs,kern,Xhist,L,temp1,onlyGradient=False):
         xNew=pointNew
         nTraining=self._numberTraining
-        tempN=nTraining+n
-        
-
+        tempN=self._numberTraining+n
+        xNew=xNew.reshape((1,self.n1))
         B=np.zeros([1,tempN])
         
         for i in xrange(tempN):
-            B[:,i]=kern.K(x,Xhist[i:i+1,:])
+            B[:,i]=kern.K(xNew,Xhist[i:i+1,:])
             
             
         temp2=linalg.solve_triangular(L,B.T,lower=True)
         
         ##gradient
         if grad:
-            gradX=self.gradXKern(x,n,self)
-         #   temp3=linalg.solve_triangular(L,y-muStart,lower=True)
+            gradX=self.gradXKern(xNew,n,kern,self._numberTraining,Xhist,self.n1)
+      #   #   temp3=linalg.solve_triangular(L,y-muStart,lower=True)
             temp5inv=np.zeros((self.n1,tempN))
             for j in xrange(self.n1):
                 temp5inv[j,:]=linalg.solve_triangular(L,gradX[:,j].T,lower=True)
-              #  gradi[j]=muStart+np.dot(temp5.T,temp1)
+       #       #  gradi[j]=muStart+np.dot(temp5.T,temp1)
         #########
         
         if grad:
-            muNew,gradMu=self.muN(xNew,n,L,temp1,temp2,temp5inv,grad=True)
-            var,gradVar=self.varN(xNew,n,L,temp1,temp2,temp5inv,grad=True)
+           
+            muNew,gradMu=self.muN(xNew,n,L,temp1,temp2,kern,temp5inv,grad=True)
+            
+            var,gradVar=self.varN(xNew,n,L,temp2,kern,temp5inv,grad=True)
             
             
             std=np.sqrt(var)
@@ -461,9 +514,12 @@ class EI(VOI):
             temp10=gradMu*norm.cdf(Z)+(muNew-maxObs)*norm.pdf(Z)*gradZ
             +norm.pdf(Z)*gradstd+std*(norm.pdf(Z)*Z*(-1.0))*gradZ
         else:
+            muNew=self.muN(xNew,n,L,temp1,temp2,kern,None,grad=False)
+            var=self.varN(xNew,n,L,temp2,kern,None,grad=False)
+            std=np.sqrt(var)
             Z=(muNew-maxObs)/std
-            std=np.sqrt(self.varN(xNew,n,L,temp1,temp2,grad=False))
-            muNew=self.muN(xNew,n,L,temp1,temp2,grad=False)
+         #   std=np.sqrt(self.varN(xNew,n,L,temp1,temp2,grad=False))
+         #   muNew=self.muN(xNew,n,L,temp1,temp2,grad=False)
             
             
         if onlyGradient:
@@ -638,6 +694,38 @@ class KG(VOI):
 
         return self.evalVOI(n,pointNew,a,b,c,keep,keep1,M,L,data.Xhist,kern,tempB,temp5,inner,inv1temp,grad)
 
+
+
+    ###checked only for analytic example
+    def plotVOI(self,n,points,L,data,kern,temp1,temp2,a,m,path):
+        z=np.zeros(m)
+        
+        for i in xrange(m):
+            z[i]=self.VOIfunc(n,points[i,:],L,data,kern,temp1,temp2,False,a,False)
+            
+        fig=plt.figure()
+        fig.set_size_inches(21, 21)
+        plt.plot(points,z,'-')
+        plt.xlabel('x',fontsize=60)
+        Xp=data.Xhist[0:self._numberTraining,0]
+        pylab.plot(Xp,np.zeros(len(Xp))+0.00009,'o',color='red',markersize=40,label="Training point")
+        if n>0:
+            Xp=data.Xhist[self._numberTraining:self._numberTraining+n,0]
+            pylab.plot(Xp,np.zeros(len(Xp))+0.00009,'o',color='firebrick',markersize=40,label="Chosen point")
+        ax = plt.subplot(111)
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0+box.height*0.1, box.width, box.height*0.9])
+
+        # Put a legend to the right of the current axis
+        ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.09),ncol=2,fontsize=50)
+        
+        pylab.xlim([-0.5,0.5])
+      #  plt.legend()
+        plt.savefig(os.path.join(path,'%d'%n+"VOI_n.pdf"))
+        plt.close(fig)
+        
+        
+        
 class PI(VOI):
     def __init__(self,gradXKern,*args,**kargs):
         VOI.__init__(self,*args,**kargs)

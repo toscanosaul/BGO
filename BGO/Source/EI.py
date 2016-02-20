@@ -69,8 +69,8 @@ class EI:
 	#			  xStart=start,xtol=self.opt.xtol,stopFunction=self.opt.functionConditionOpt)
 
         def g(x,grad,onlyGradient=False):
-            return self.opt.functionGradientAscentVn(i,x,grad,maxObs,self.stat._k,
-						     self.dataObj.Xhist, L,temp1,
+            return self.opt.functionGradientAscentVn(x,grad,maxObs,self._VOI,i,L,self.stat._k,
+						     self.dataObj.Xhist, temp1,
 						     onlyGradient)
         if self.opt.MethodVn=="SLSQP":
 	    opt=op.SLSP(start)
@@ -99,8 +99,8 @@ class EI:
 	
         vec=np.zeros(tempN)
         X=self.dataObj.Xhist
-        for i in xrange(tempN):
-            vec[i]=self.stat.muN(X[i,:],n,L,X,temp1)
+        for j in xrange(tempN):
+            vec[j]=self.stat.muN(X[j,:],i,L,self.dataObj.Xhist,temp1,self.stat._k,grad=False)
         maxObs=np.max(vec)
 	args['maxObs']=maxObs
 
@@ -156,8 +156,8 @@ class EI:
 #				  xStart=start,xtol=self.opt.xtol,stopFunction=self.opt.functionConditionOpt)
         tempN=i+self.numberTraining
         def g(x,grad,onlyGradient=False):
-            return self.opt.functionGradientAscentAn(x,i,L,self.dataObj.Xhist,temp1,grad,
-						       onlyGradient)
+            return self.opt.functionGradientAscentAn(x,grad,self.dataObj.Xhist,self.stat,i,L,temp1,
+						       self.stat._k,onlyGradient)
 
 	if self.opt.MethodAn=="SLSQP":
 	    opt=op.SLSP(start)

@@ -38,7 +38,7 @@ class KG:
         self.optPointsArray=[]
 
 
-    def KGAlg(self,m,nRepeat=1,Train=True,**kwargs):
+    def KGAlg(self,m,nRepeat=1,Train=True,plots=False,**kwargs):
 	if self.miscObj.create:
 	    fl.createNewFilesFunc(self.path,self.miscObj.rs)
 	fl.writeTraining(self)
@@ -46,6 +46,38 @@ class KG:
 	    self.trainModel(numStarts=nRepeat,**kwargs)
         for i in range(m):
             print i
+	    
+	    if plots is True:
+		tempN=i+self.numberTraining
+		At=self.stat._k.A(self.dataObj.Xhist[0:tempN,:],noise=self.dataObj.varHist[0:tempN])
+		Lt=np.linalg.cholesky(At)
+		
+		muStartt=self.stat._k.mu
+		yt=self.dataObj.yHist
+		temp1t=linalg.solve_triangular(Lt,np.array(yt)-muStartt,lower=True)
+		m2=self._VOI._points.shape[0]
+		
+
+		self.stat.plotmuN(i,Lt,temp1t,self._VOI._points,m2,
+				  self.path,self.dataObj,self.stat._k,
+				  self.dataObj.Xhist)
+		
+
+		temp2=np.zeros((m2,tempN))
+		
+		X=self.dataObj.Xhist
+		B2=np.zeros((m2,tempN))
+		for j in xrange(tempN):
+		    B2[:,j]=self.stat._k.K(self._VOI._points,X[j:j+1,:])[:,0]
+		
+		a2=np.zeros(m2)
+		for j in xrange(m2):
+		    temp2[j,:]=linalg.solve_triangular(Lt,B2[j,:].T,lower=True)
+		    a2[j]=muStartt+np.dot(temp2[j,:],temp1t)
+
+		self._VOI.plotVOI(i,self._VOI._points,Lt,self.dataObj,self.stat._k,
+				  temp1t,temp2,a2,m2,self.path)
+		
 	    if self.miscObj.parallel:
 		self.optVOIParal(i,self.opt.numberParallel)
 	    else:

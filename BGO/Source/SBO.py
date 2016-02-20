@@ -138,6 +138,7 @@ from scipy.stats import norm
 import pylab as plb
 from scipy import linalg
 
+
 class SBO:
     def __init__(self, Objobj,miscObj,VOIobj,optObj,statObj,dataObj):
         """
@@ -151,6 +152,7 @@ class SBO:
 	    optObj: Opt object (See InterfaceSBO).
 	    statObj: Statistical object (See statGeneral).
 	    dataObj: Data object (See InterfaceSBO).
+	    plots: Ture if we want the plots of a_{n} and VOI. Only for the analytic example
         """
 	self.dataObj=dataObj
 	self.stat=statObj
@@ -179,7 +181,7 @@ class SBO:
 	if not os.path.exists(self.path):
 	    os.makedirs(self.path)
 
-    def SBOAlg(self,m,nRepeat=10,Train=True,**kwargs):
+    def SBOAlg(self,m,nRepeat=10,Train=True,plots=False,**kwargs):
         """
         Run the SBO algorithm until m steps are taken.
 	
@@ -197,6 +199,45 @@ class SBO:
         for i in range(m):
             print i
 	    #Optimize VOI
+	    if plots:
+		tempN=self.numberTraining+i
+		At=self.stat._k.A(self.dataObj.Xhist[0:tempN,:],noise=self.dataObj.varHist[0:tempN])
+		Lt=np.linalg.cholesky(At)
+		gridX=self._VOI._points
+		tempX=self.dataObj.Xhist[0:tempN,1:self._dimW+1]
+		logProd=self.stat.computeLogProductExpectationsForAn(tempX,
+                                                         tempN,self.stat._k)
+
+		self.stat.plotAn(i,Lt,gridX,self.path,self.dataObj,self.dataObj.Xhist[:,0:1],
+				 self.dataObj.Xhist[:,1:2],self.stat._k,self.stat.B,logProd)
+
+		Bhist=np.zeros((self._VOI.sizeDiscretization,tempN))
+		for j in xrange(0,tempN):
+		    temp=self.stat.B(self._VOI._points,self.dataObj.Xhist[j,:],self._n1,
+				     self._dimW,self.stat._k)
+		    Bhist[:,j]=temp
+		muStartt=self.stat._k.mu
+		yt=self.dataObj.yHist
+		temp2t=linalg.solve_triangular(Lt,(Bhist).T,lower=True)
+		temp1t=linalg.solve_triangular(Lt,np.array(yt)-muStartt,lower=True)
+		a=muStartt+np.dot(temp2t.T,temp1t)
+		m2=self._VOI._points.shape[0]
+		scratch=np.zeros((m2,tempN))
+		
+
+		for j in xrange(m2):
+		    scratch[j,:]=linalg.solve_triangular(Lt,Bhist[j,:].transpose(),lower=True)
+		self._VOI.plotVOI(i,Lt,self.path,self.dataObj,temp2t,a,scratch,
+				  self.stat._k,self.dataObj.Xhist,self.stat.B,m2,
+				  self._VOI._points)
+		
+		
+		####mu_n
+	
+		self.stat.plotmuN(i,Lt,temp1t,self.stat._k,self.dataObj.Xhist[:,0:1],
+				  self.dataObj.Xhist[:,1:2],muStartt,
+				  self._VOI._points,m2,self.path)
+		
 	    if self.miscObj.parallel:
 		self.optVOIParal(i,self.opt.numberParallel) 
 	    else:
@@ -334,10 +375,8 @@ class SBO:
             wSt=self.Obj.simulatorW(nStart)
 	    XWst=np.concatenate((Xst,wSt),1)
 	    args3=self.getParametersOptVoi(i)
-	    
 	    pool = mp.Pool(processes=numProcesses)
 	    jobs = []
-
             for j in range(nStart):
                 job = pool.apply_async(misc.VOIOptWrapper, args=(self,XWst[j:j+1,:],),
 				       kwds=args3)
@@ -353,7 +392,6 @@ class SBO:
                 self.optRuns.append(jobs[j].get())
             except Exception as e:
                 print "Error optimizing VOI"
-                
         if len(self.optRuns):
             j = np.argmax([o.fOpt for o in self.optRuns])
 	    fl.writeNewPointSBO(self,self.optRuns[j])

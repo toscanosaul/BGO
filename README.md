@@ -21,7 +21,7 @@ random vectors. We suppose that a small number of random variables have
 a much stronger effect on the variability. In general, the functions are
 time-consuming to evaluate, and the derivatives are unavailable.
 
-[tf]: http://toscanosaul.github.io/saul/SBO.pdf
+[tf]: http://arxiv.org/pdf/1602.02338.pdf
 
 In mathematical notation, we want to solve the problem:
 

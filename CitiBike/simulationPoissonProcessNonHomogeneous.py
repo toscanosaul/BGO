@@ -39,18 +39,21 @@ def PoissonProcess(T,lamb,A,N,randst,nStations=329):
 
     Args:
         T (int): Final time of the simulation.
-        A (List[List[Tuple(int,int)]]): Subsets of pair of bike stations. 
+        A (List[Tuple(int,int)]): Subset of pair of bike stations. 
         N (int): N(T,A)=sum(i,j in A) N(T,(i,j)).
-        lamb (numpy array): Vector with the parameters of the
-                             poisson processes N(T,(i,j))
-                             (lamb[i] is related to the ith entry of A).
+        lamb (List[numpy array]): List with the parameters
+                                  of the Poisson processes N(T,(i,j)), 
+                                  (i.e. jth entry of lamb is the Poisson process
+                                   with parameter lamb[0][0,j] between stations
+                                   lamb[0][1,j] and lamb[0][2,j]).
         nStations (int): Number of bike stations.
         
     Returns:
-        TIME (List[List[List[Tuple(int,int)],List[float]]]):
+        Tuple composed by:
+          List[List[List[Tuple(int,int)],List[float]]]:
                                         List with the arrival
                                         times for each set A: (A[i],Times).
-        nArrivals (int): Overall number of arrivals.
+          int: Overall number of arrivals.
     """
     n=len(A) 
     prob=np.zeros(n)
@@ -85,6 +88,10 @@ def startInitialConfiguration (X,m,cluster,bikeData,files=False,nStations=329):
                                  and longitude of each bike station.
         -files (bool): True if we want to save the initial configuration;
                 False otherwise.
+
+    Returns:
+        numpy array: nStations-by-2 matrix with the number of docks and
+                     bikes available at each bike station.
     """
     A=np.zeros((nStations,2))
     A[:,0]=bikeData[:,2]
@@ -123,13 +130,20 @@ def startInitialConfiguration (X,m,cluster,bikeData,files=False,nStations=329):
             nElm=len(indx)
     return A
 
+
+
 def findBikeStation(state,currentBikeStation):
     """
     Find the closest bike station to currentBikeStation with available docks.
     
     Args:
-        state: Matrix with states of all the bike stations.
-        currentBikeStation: index of the current bike station.
+        state (numpy array): Matrix with the number of available docks
+                             of all the bike stations.
+        currentBikeStation (int): index of the current bike station.
+    
+    Returns:
+        int: Index of the the closest bike station to currentBikeStation
+             with available docks.
     """
     dist=distancesBikeStations[currentBikeStation,:]
     sort=[i[0] for i in sorted(enumerate(dist), key=lambda x:x[1])]
@@ -142,36 +156,58 @@ def findBikeStation(state,currentBikeStation):
             k+=1
     return 0
 
-def unhappyPeople (T,N,X,m,cluster,bikeData,parLambda,nDays,A,
-                   poissonArray,timesArray,ind=None,randomSeed=None,
-                   nStations=329):
+
+
+def negativelyAffectedTrips (T,N,X,m,cluster,bikeData,parLambda,nDays,A,
+                            poissonArray,timesArray,ind=None,randomSeed=None,
+                            nStations=329):
     """
-    Counts the number of people who doesn't find a bike or an available dock.
+    Counts the number of negatively affected trips.
     We divide the bike stations in m groups according to K-means algorithm.
     The bikes are distributed uniformly in each group.
     
     Args:
-        T: Time of the simulation.
-        N: Vector N(T,A_{i}).
-        X: Initial configuration of the bikes.
-        m: Number of groups formed with the bike stations.
-        lamb: List with vectors of the parameters of the
-              poisson processes N(T,(i,j)).
-        A: List with all the sets considered.
-        date: String: yyyy-mm. We are using the data of that
-              date.
-        exponentialTimes: Parameters of the exponential distributions.
-        cluster: Array read from a txt file. It contains the clusters of
-                 the bike stations.
-        bikeData: Matrix with the ID, numberDocks, Latitute,longitude.
-        ind: Day
+        T (int): Duration of the simulation in hours (it always starts at 7:00am).
+        N (numpy array): Vector N(T,A_{i}).
+        X (numpy array): Vector with the initial configuration of the bikes.
+        m (int): Number of groups formed with the bike stations.
+        cluster (List[List[List[int,float,float]]]):
+                            Contains the clusters of the bike stations
+                            with their ids, and geographic coordinates.
+        bikeData (numpy array): Matrix with the ID, numberDocks, Latitute,
+                                and longitude of each bike station.
+        parLambda (numpy array) : Vector with the parameters of the
+                                  Poisson processes  N(T,A_{i}).
+        nDays: Number of different days considered in the simulation (i.e. 365).
+        A (List[List[Tuple(int,int)]]): List with subsets of pair of bike stations.
+                lamb (List[numpy array]): List with the parameters
+                                  of the Poisson processes N(T,(i,j)), 
+                                  (i.e. jth entry of lamb is the Poisson process
+                                   with parameter lamb[0][0,j] between stations
+                                   lamb[0][1,j] and lamb[0][2,j]).
+        poissonArray (List[List[numpy array]]):
+            List with the parameters of the Poisson processes N(T,(i,j)), where 
+            the jth entry of poissonArray are the parameters of the Poissons
+            processes of day j between each pair of bike stations.
+            (i.e., the parameter of the Poisson process on day j between stations
+            lamb[j][0][1,l] and lamb[j][0][2,l] is lamb[j][0][0,l]. This is a
+            sparse representation of the original matrix, and so if a pair of
+            stations doesn't appear in the last list, its PP has parameter zero.
+        timesArray (List[List[numpy array]]):
+            Similar tan poissonArray, but with the mean times of traveling between
+            the stations.
+        ind (int or None): Day of the year when the simulation is run.
+        randomSeed (int): Random seed.
+        nStations (int): Number of bike stations.
+        
+    Returns:
+        int: Overall number of negatively affected tripes multiplied by -1.
     """
     if randomSeed is not None:
         randst = np.random.mtrand.RandomState(randomSeed)
     else:
         randst=np.random
 
-   # parLambda=parLambda.astype(int)
     if ind is None:
         probs=poisson.pmf(int(N[0]),mu=np.array(parLambda))
         probs=probs/np.sum(probs)
@@ -232,80 +268,6 @@ def unhappyPeople (T,N,X,m,cluster,bikeData,parLambda,nDays,A,
         timeUsed=randst.exponential(exponentialTimes2[bikePickUp,bikeDrop])
         dropTimes.append((currentTime+timeUsed,bikeDrop))
         dropTimes=sorted(dropTimes, key=lambda x:x[0])
-        
         state[bikePickUp,1]=state[bikePickUp,1]-1
         state[bikePickUp,0]=state[bikePickUp,0]+1
     return -unHappy
-
-
-
-def generatePoissonParameters(nDays,nStations):
-    parametersLambda=np.zeros(nDays)
-    for i in xrange(nDays):
-        lamb=[]
-        fil="day"+"%d"%i+"PoissonParametersNonHom.txt"
-        fil=os.path.join("NonHomegeneousPP",fil)
-        poiss=np.loadtxt(fil)
-        for j in range(nStations):
-            for k in range(nStations):
-                lamb.append(poiss[j,k])
-        parametersLambda[i]=np.sum(np.array(lamb))
-    f=open(os.path.join("NonHomegeneousPP","poissonDays.txt"),'w')
-    np.savetxt(f,parametersLambda)
-    f.close()
-
-##probability of w
-def computeProbability(w,parLambda,nDays):
-    probs=poisson.pmf(w,mu=np.array(parLambda))
-    probs*=(1.0/nDays)
-    return np.sum(probs)
-
-##cum distribution
-def cumProba(T,parLambda,nDays,L=650,M=8900):
-    w=range(L,M)
-    probs=np.zeros(M-L)
-    for i in range(M-L):
-        probs[i]=computeProbability(w[i],parLambda,nDays)
-    return np.sum(probs)
-
-def expectation(z,alpha,parLambda,nDays,L=650,M=8900):
-    w=np.array(range(L,M))
-    probs=np.zeros(M-L)
-    aux=np.exp(-alpha*((z-w)**2))
-    for i in range(M-L):
-        probs[i]=computeProbability(w[i],parLambda,nDays)
-    return np.dot(aux,probs)
-
-def writeProbabilities(poissonParameters,nDays):
-    L=650
-    M=8900
-    wTemp=np.array(range(L,M))
-    probsTemp=np.zeros(M-L)
-    for i in range(M-L):
-        probsTemp[i]=computeProbability(wTemp[i],poissonParameters,nDays)
-    f=open(os.path.join("NonHomegeneousPP","probabilitiesExpectations.txt"),'w')
-    np.savetxt(f,probsTemp)
-    f.close()
-    
-def writeSparseMatrix(nDays):
-    for i in range(nDays):
-        fil="day"+"%d"%i+"PoissonParametersNonHom.txt"
-        A=np.loadtxt(os.path.join("NonHomegeneousPP",fil))
-        fil2="daySparse"+"%d"%i+"PoissonParametersNonHom.txt"
-        f=open(os.path.join("NonHomogeneousPP2",fil2),'w')
-        A=csr(A)
-        temp=A.nonzero()
-        temp2=np.array([A.data,temp[0],temp[1]])
-        np.savetxt(f,temp2)
-        f.close()
-
-        fil="day"+"%d"%i+"ExponentialTimesNonHom.txt"
-        A=np.loadtxt(os.path.join("NonHomegeneousPP",fil))
-        fil2="daySparse"+"%d"%i+"ExponentialTimesNonHom.txt"
-        f=open(os.path.join("NonHomogeneousPP2",fil2),'w')
-        A=csr(A)
-        temp=A.nonzero()
-        temp2=np.array([A.data,temp[0],temp[1]])
-        
-        np.savetxt(f,temp2)
-        f.close()

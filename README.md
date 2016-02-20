@@ -52,3 +52,5 @@ origination station, or could not find an available dock at their
 preferred destination station. We call such trips "negatively affected
 trips".
 
+![citi bike simulation](https://github.com/toscanosaul/BGO/blob/master/CitiBike/animation.gif)
+

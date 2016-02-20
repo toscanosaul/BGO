@@ -62,7 +62,7 @@ n1=4
 n2=1
 numberSamplesForG=nTemp3
 
-nDays=153
+nDays=365
 ######
 
 """
@@ -74,7 +74,7 @@ g=unhappyPeople
 nSets=4
 
 fil="poissonDays.txt"
-fil=os.path.join("NonHomegeneousPP",fil)
+fil=os.path.join("NonHomogeneousPP2",fil)
 poissonParameters=np.loadtxt(fil)
 
 ###readData
@@ -84,11 +84,11 @@ exponentialTimes=[[] for i in xrange(nDays)]
 
 for i in xrange(nDays):
     fil="daySparse"+"%d"%i+"ExponentialTimesNonHom.txt"
-    fil2=os.path.join("NonHomogeneousPP2",fil)
+    fil2=os.path.join("SparseNonHomogeneousPP2",fil)
     poissonArray[i].append(np.loadtxt(fil2))
     
     fil="daySparse"+"%d"%i+"PoissonParametersNonHom.txt"
-    fil2=os.path.join("NonHomogeneousPP2",fil)
+    fil2=os.path.join("SparseNonHomogeneousPP2",fil)
     exponentialTimes[i].append(np.loadtxt(fil2))
 
 numberStations=329
@@ -223,7 +223,7 @@ trainingPoints=nTemp2
 #nameDirectory="Results"+'%d'%numberSamplesForG+"AveragingSamples"+'%d'%trainingPoints+"TrainingPoints"
 #folder=os.path.join(nameDirectory,"KG")
 
-misc=inter.Miscellaneous(randomSeed,parallel,nF=numberSamplesForG,tP=trainingPoints,ALG="KG",prefix="FinalNonHomogeneous112715")
+misc=inter.Miscellaneous(randomSeed,parallel,nF=numberSamplesForG,tP=trainingPoints,ALG="KG2",prefix="FinalNonHomogeneous011116")
 
 """
 We define the data object.
@@ -239,7 +239,7 @@ tempFour=tempFour.reshape((trainingPoints,1))
 Xtrain=np.concatenate((tempX,tempFour),1)
 
 dataObj=inter.data(Xtrain,yHist=None,varHist=None)
-dataObj.getTrainingDataKG(trainingPoints,noisyG,numberSamplesForG,parallel)
+dataObj.getTrainingDataKG(trainingPoints,noisyG,numberSamplesForG,False)
 
 """
 We define the statistical object.

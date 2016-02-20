@@ -22,8 +22,11 @@ from scipy.sparse import csr_matrix as csr
 
 
 distancesBikeStations=np.loadtxt("distanceBikeStations.txt")
-"""numpy array: the entry (i,j) is the distrance between the ith station
-                 and jth station.
+nBikes=6000
+"""distancesBikeStations (numpy array): matrix with the entry (i,j) equal to
+                                        the distrance between the ith station
+                                        and jth station.
+   nBikes (int): overall number of bikes.
 """
 
 

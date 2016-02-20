@@ -11,11 +11,8 @@ developed by Saul Toscano-Palmerin. The library
 includes four different algorithms: SBO, KG, EI and PI.
 
 **SBO** is a new algorithm proposed by [Toscano-Palmerin and
-Frazier][tf]. It's used for simulation optimization problems.
-Specifically, it's used for the global optimization of the expectation
-of continuos functions (respect to some metric), which depend on big
-random vectors. We suppose that a small number of random variables have
-a much stronger effect on the variability. In general, the functions are
+Frazier][tf]. It's used for simulation optimization problems, and for global 
+Bayesian optimization. In general, the objective functions are
 time-consuming to evaluate, and the derivatives are unavailable.
 
 [tf]: http://arxiv.org/pdf/1602.02338.pdf

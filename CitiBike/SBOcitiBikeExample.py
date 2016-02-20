@@ -107,9 +107,7 @@ for j in range(numberStations):
 #    parameterSetsPoisson[j]=np.sum(lamb[j])
 
 
-#exponentialTimes=np.loadtxt("2014-05"+"ExponentialTimes.txt")
-with open ('json.json') as data_file:
-    data=json.load(data_file)
+
 
 f = open(str(4)+"-cluster.txt", 'r')
 cluster=eval(f.read())
@@ -155,7 +153,7 @@ def noisyF(XW,n,ind=None):
 
     for i in xrange(n):
         simulations[i]=g(TimeHours,w,x,nSets,
-                         data,cluster,bikeData,poissonParameters,nDays,
+                         cluster,bikeData,poissonParameters,nDays,
 			 Avertices,poissonArray,exponentialTimes,randomSeed=ind)
 
     
@@ -204,7 +202,7 @@ def simulatorW(n,ind=False):
     
 def g2(x,w,day,i):
     return g(TimeHours,w,x,nSets,
-                         data,cluster,bikeData,poissonParameters,nDays,
+                         cluster,bikeData,poissonParameters,nDays,
 			 Avertices,poissonArray,exponentialTimes,day,i)
 
 

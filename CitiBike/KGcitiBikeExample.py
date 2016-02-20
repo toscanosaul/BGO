@@ -104,9 +104,7 @@ for j in range(numberStations):
 #    parameterSetsPoisson[j]=np.sum(lamb[j])
 
 
-#exponentialTimes=np.loadtxt("2014-05"+"ExponentialTimes.txt")
-with open ('json.json') as data_file:
-    data=json.load(data_file)
+
 
 f = open(str(4)+"-cluster.txt", 'r')
 cluster=eval(f.read())
@@ -177,13 +175,13 @@ def noisyG(X,n,randSeed=None):
     result=np.zeros(estimator)
     for i in range(estimator):
         result[i] = g(TimeHours,W[i,:],X,nSets,
-                         data,cluster,bikeData,poissonParameters,nDays,
+                         cluster,bikeData,poissonParameters,nDays,
 			 Avertices,poissonArray,exponentialTimes,indexes[i],randSeed)
     return np.mean(result),float(np.var(result))/estimator
 
 def g2(x,w,day,i):
     return g(TimeHours,w,x,nSets,
-                         data,cluster,bikeData,poissonParameters,nDays,
+                         cluster,bikeData,poissonParameters,nDays,
 			 Avertices,poissonArray,exponentialTimes,day,i)
 
 def estimationObjective(x,N=1000):

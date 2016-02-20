@@ -40,7 +40,7 @@ computational/experimental effort across information sources, to
 optimize functions.
 
 See the CitiBike directory for one example otimized using this library.
-([intro and annotated source][annotated]) 
+([Intro and annotated source][annotated]) 
 
 ![citi bike simulation](https://github.com/toscanosaul/BGO/blob/master/CitiBike/animation.gif)
 

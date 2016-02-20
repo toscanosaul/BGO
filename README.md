@@ -36,9 +36,10 @@ examples where we need to decide how to optimally allocate
 computational/experimental effort across information sources, to
 optimize functions.
 
-See the CitiBike directory for one example otimized using this library.
+See the ([CitiBike][ref]) for one example optimized using this library.
 ([Intro and annotated source][annotated]) 
 
 ![citi bike simulation](https://github.com/toscanosaul/BGO/blob/master/CitiBike/animation.gif)
 
 [annotated]: https://github.com/toscanosaul/BGO/blob/master/CitiBike/citiBike.pdf 
+[ref]: https://github.com/toscanosaul/BGO/tree/master/CitiBike

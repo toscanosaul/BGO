@@ -45,63 +45,26 @@ class KG:
         if Train is True:
 	    self.trainModel(numStarts=nRepeat,**kwargs)
         for i in range(m):
-            print i
-	    
-	    if plots is True:
-		tempN=i+self.numberTraining
-		At=self.stat._k.A(self.dataObj.Xhist[0:tempN,:],noise=self.dataObj.varHist[0:tempN])
-		Lt=np.linalg.cholesky(At)
-		
-		muStartt=self.stat._k.mu
-		yt=self.dataObj.yHist
-		temp1t=linalg.solve_triangular(Lt,np.array(yt)-muStartt,lower=True)
-		m2=self._VOI._points.shape[0]
-		
-
-		self.stat.plotmuN(i,Lt,temp1t,self._VOI._points,m2,
-				  self.path,self.dataObj,self.stat._k,
-				  self.dataObj.Xhist)
-		
-
-		temp2=np.zeros((m2,tempN))
-		
-		X=self.dataObj.Xhist
-		B2=np.zeros((m2,tempN))
-		for j in xrange(tempN):
-		    B2[:,j]=self.stat._k.K(self._VOI._points,X[j:j+1,:])[:,0]
-		
-		a2=np.zeros(m2)
-		for j in xrange(m2):
-		    temp2[j,:]=linalg.solve_triangular(Lt,B2[j,:].T,lower=True)
-		    a2[j]=muStartt+np.dot(temp2[j,:],temp1t)
-
-		self._VOI.plotVOI(i,self._VOI._points,Lt,self.dataObj,self.stat._k,
-				  temp1t,temp2,a2,m2,self.path)
-		
 	    if self.miscObj.parallel:
 		self.optVOIParal(i,self.opt.numberParallel)
 	    else:
 		 self.optVOInoParal(i)
 
-            print i
 	    if self.miscObj.parallel:
 		self.optAnParal(i,self.opt.numberParallel)
 	    else:
 		self.optAnnoParal(i)
-            print i
+		
 	if self.miscObj.parallel:
 	    self.optAnParal(i,self.opt.numberParallel)
 	else:
 	    self.optAnnoParal(i)
         
-    ###start is a matrix of one row
-    ###
-    def optimizeVOI(self,start, i,L,temp1,temp2,a):
-      #  opt=op.OptSteepestDescent(n1=self.opt.dimXsteepest,projectGradient=self.opt.projectGradient,
-	#			  xStart=start,xtol=self.opt.xtol,stopFunction=self.opt.functionConditionOpt)
 
+    def optimizeVOI(self,start, i,L,temp1,temp2,a):
         def g(x,grad,onlyGradient=False):
-            return self.opt.functionGradientAscentVn(x,grad,self._VOI,i,L,self.dataObj,self.stat._k,
+            return self.opt.functionGradientAscentVn(x,grad,self._VOI,i,L,
+						     self.dataObj,self.stat._k,
 						     temp1,temp2,a,
 						     onlyGradient)
         if self.opt.MethodVn=="SLSQP":
@@ -120,7 +83,8 @@ class KG:
 	tempN=self.numberTraining+i
 	args={}
 	args['i']=i
-	A=self.stat._k.A(self.dataObj.Xhist[0:tempN,:],noise=self.dataObj.varHist[0:tempN])
+	A=self.stat._k.A(self.dataObj.Xhist[0:tempN,:],
+			 noise=self.dataObj.varHist[0:tempN])
         L=np.linalg.cholesky(A)
 	args['L']=L
 	
@@ -160,14 +124,13 @@ class KG:
     def optVOIParal(self,i,nStart,numProcesses=None):
         try:
             n1=self._n1
-          #  n2=self._dimW
-         #   dim=self.dimension
 	    args3=self.getParametersOptVoi(i)
 	    Xst=self.Obj.sampleFromXVn(nStart)
             jobs = []
             pool = mp.Pool(processes=numProcesses)
             for j in range(nStart):
-                job = pool.apply_async(misc.VOIOptWrapper, args=(self,Xst[j:j+1,:],), kwds=args3)
+                job = pool.apply_async(misc.VOIOptWrapper,
+				       args=(self,Xst[j:j+1,:],), kwds=args3)
                 jobs.append(job)
             
             pool.close()  # signal that no more data coming in
@@ -178,7 +141,6 @@ class KG:
             pool.join()
 
         numStarts=nStart
-     #   print jobs[0].get()
         for j in range(numStarts):
             try:
                 self.optRuns.append(jobs[j].get())
@@ -193,8 +155,6 @@ class KG:
         
         
     def optimizeAn(self,start,i,L,temp1):
-       # opt=op.OptSteepestDescent(n1=self.opt.dimXsteepest,projectGradient=self.opt.projectGradient,
-#				  xStart=start,xtol=self.opt.xtol,stopFunction=self.opt.functionConditionOpt)
         tempN=i+self.numberTraining
         def g(x,grad,onlyGradient=False):
             return self.opt.functionGradientAscentAn(x,grad,self.dataObj,
@@ -218,7 +178,8 @@ class KG:
 	args3={}
 	args3['i']=i
 
-	A=self.stat._k.A(self.dataObj.Xhist[0:tempN,:],noise=self.dataObj.varHist[0:tempN])
+	A=self.stat._k.A(self.dataObj.Xhist[0:tempN,:],
+			 noise=self.dataObj.varHist[0:tempN])
 	L=np.linalg.cholesky(A)
 	
 	args3['L']=L
@@ -238,7 +199,8 @@ class KG:
 	    args3={}
 	    args3['i']=i
 
-	    A=self.stat._k.A(self.dataObj.Xhist[0:tempN,:],noise=self.dataObj.varHist[0:tempN])
+	    A=self.stat._k.A(self.dataObj.Xhist[0:tempN,:],
+			     noise=self.dataObj.varHist[0:tempN])
 	    L=np.linalg.cholesky(A)
 	    
 	    args3['L']=L
@@ -252,7 +214,8 @@ class KG:
             pool = mp.Pool(processes=numProcesses)
             
             for j in range(nStart):
-                job = pool.apply_async(misc.AnOptWrapper, args=(self,Xst[j:j+1,:],), kwds=args3)
+                job = pool.apply_async(misc.AnOptWrapper,
+				       args=(self,Xst[j:j+1,:],), kwds=args3)
                 jobs.append(job)
             
             pool.close()  # signal that no more data coming in
@@ -283,9 +246,11 @@ class KG:
 	    self.stat._k.train(scaledAlpha=self.stat.scaledAlpha,
 			       numStarts=numStarts,**kwargs)
 	else:
-	    self.stat._k.trainnoParallel(scaledAlpha=self.stat.scaledAlpha,**kwargs)
+	    self.stat._k.trainnoParallel(scaledAlpha=self.stat.scaledAlpha,
+					 **kwargs)
         
-        f=open(os.path.join(self.path,'%d'%self.miscObj.rs+"hyperparameters.txt"),'w')
+        f=open(os.path.join(self.path,'%d'%self.miscObj.rs+
+			    "hyperparameters.txt"),'w')
         f.write(str(self.stat._k.getParamaters()))
         f.close()
         

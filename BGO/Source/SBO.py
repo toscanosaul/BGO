@@ -63,32 +63,37 @@ of the statistical model used.
 
 
 
-(*) Optimization class. This class consists of functions and variables used in the gradient ascent
-method when optimizing the VOI and the expectation of the GP. This functions allow us to define
-the termination condition for gradient ascent. Moreover, we may want to transform the space of x
-to a more convenient space, e.g. dimension reduction.
+(*) Optimization class. This class consists of functions and variables used in
+the gradient ascent method when optimizing the VOI and the expectation of the GP.
+This functions allow us to define the termination condition for gradient ascent.
+Moreover, we may want to transform the space of x to a more convenient space,
+e.g. dimension reduction.
 
--numberParallel: Number of starting points for the multistart gradient ascent algorithm.
--dimXsteepest: Dimension of x when the VOI and a_{n} are optimized. We may want to reduce
-	       the dimension of the original problem.
--transformationDomainX: Transforms the point x given by the steepest ascent method to the right domain
-			of x.
--transformationDomainW: Transforms the point w given by the steepest ascent method to the right domain
-			of w.
--projectGradient: Project a point x to the domain of the problem at each step of the gradient
-		  ascent method if needed.
--functionGradientAscentVn: Function used for the gradient ascent method. It evaluates the VOI,
-			   when grad and onlyGradient are False; it evaluates the VOI and
-			   computes its derivative when grad is True and onlyGradient is False,
-			   and computes only its gradient when gradient and onlyGradient are both
-			   True. 
--functionGradientAscentAn: Function used for the gradient ascent method. It evaluates a_{n},
-			   when grad and onlyGradient are False; it evaluates a_{n} and
-			   computes its derivative when grad is True and onlyGradient is False,
-			   and computes only its gradient when gradient and onlyGradient are both
-			   True.
--functionConditionOpt: Gives the stopping rule for the steepest ascent method, e.g. the function
-			could be the Euclidean norm. 
+-numberParallel: Number of starting points for the multistart gradient ascent
+		algorithm.
+-dimXsteepest: Dimension of x when the VOI and a_{n} are optimized.
+		We may want to reduce the dimension of the original problem.
+-transformationDomainX: Transforms the point x given by the steepest ascent
+			method to the right domain of x.
+-transformationDomainW: Transforms the point w given by the steepest ascent
+			method to the right domain of w.
+-projectGradient: Project a point x to the domain of the problem at each step
+		  of the gradient ascent method if needed.
+-functionGradientAscentVn: Function used for the gradient ascent method.
+			   It evaluates the VOI, when grad and onlyGradient
+			   are False; it evaluates the VOI and
+			   computes its derivative when grad is True and
+			   onlyGradient is False,
+			   and computes only its gradient when gradient
+			   and onlyGradient are both True. 
+-functionGradientAscentAn: Function used for the gradient ascent method.
+			   It evaluates a_{n}, when grad and onlyGradient
+			   are False; it evaluates a_{n} and computes its
+			   derivative when grad is True and onlyGradient
+			   is False, and computes only its gradient when
+			   gradient and onlyGradient are both True.
+-functionConditionOpt: Gives the stopping rule for the steepest ascent method,
+			e.g. the function could be the Euclidean norm. 
 -xtol: Tolerance of x for the convergence of the steepest ascent method.
 
                  
@@ -96,8 +101,8 @@ to a more convenient space, e.g. dimension reduction.
 (*) VOI class. This class consits of the functions and variables related to the VOI.
 
 -pointsApproximation: Points of the discretization to compute the VOI.
--gradXWSigmaOfunc: Computes the gradient of Sigma_{0}, which is the covariance of the Gaussian
-		   Process on F.
+-gradXWSigmaOfunc: Computes the gradient of Sigma_{0}, which is the
+		   covariance of the Gaussian Process on F.
 -gradXBfunc: Computes the gradients with respect to x_{n+1} of
 	     B(x_{p},n+1)=\int\Sigma_{0}(x_{p},w,x_{n+1},w_{n+1})dp(w),
 	     where x_{p} is a point in the discretization of the domain of x.
@@ -152,7 +157,8 @@ class SBO:
 	    optObj: Opt object (See InterfaceSBO).
 	    statObj: Statistical object (See statGeneral).
 	    dataObj: Data object (See InterfaceSBO).
-	    plots: Ture if we want the plots of a_{n} and VOI. Only for the analytic example
+	    plots: Ture if we want the plots of a_{n} and VOI.
+		    Only for the analytic example
         """
 	self.dataObj=dataObj
 	self.stat=statObj
@@ -197,58 +203,18 @@ class SBO:
             self.trainModel(numStarts=nRepeat,**kwargs) #Train model
         points=self._VOI._points
         for i in range(m):
-            print i
-	    #Optimize VOI
-	    if plots:
-		tempN=self.numberTraining+i
-		At=self.stat._k.A(self.dataObj.Xhist[0:tempN,:],noise=self.dataObj.varHist[0:tempN])
-		Lt=np.linalg.cholesky(At)
-		gridX=self._VOI._points
-		tempX=self.dataObj.Xhist[0:tempN,1:self._dimW+1]
-		logProd=self.stat.computeLogProductExpectationsForAn(tempX,
-                                                         tempN,self.stat._k)
 
-		self.stat.plotAn(i,Lt,gridX,self.path,self.dataObj,self.dataObj.Xhist[:,0:1],
-				 self.dataObj.Xhist[:,1:2],self.stat._k,self.stat.B,logProd)
-
-		Bhist=np.zeros((self._VOI.sizeDiscretization,tempN))
-		for j in xrange(0,tempN):
-		    temp=self.stat.B(self._VOI._points,self.dataObj.Xhist[j,:],self._n1,
-				     self._dimW,self.stat._k)
-		    Bhist[:,j]=temp
-		muStartt=self.stat._k.mu
-		yt=self.dataObj.yHist
-		temp2t=linalg.solve_triangular(Lt,(Bhist).T,lower=True)
-		temp1t=linalg.solve_triangular(Lt,np.array(yt)-muStartt,lower=True)
-		a=muStartt+np.dot(temp2t.T,temp1t)
-		m2=self._VOI._points.shape[0]
-		scratch=np.zeros((m2,tempN))
-		
-
-		for j in xrange(m2):
-		    scratch[j,:]=linalg.solve_triangular(Lt,Bhist[j,:].transpose(),lower=True)
-		self._VOI.plotVOI(i,Lt,self.path,self.dataObj,temp2t,a,scratch,
-				  self.stat._k,self.dataObj.Xhist,self.stat.B,m2,
-				  self._VOI._points)
-		
-		
-		####mu_n
-	
-		self.stat.plotmuN(i,Lt,temp1t,self.stat._k,self.dataObj.Xhist[:,0:1],
-				  self.dataObj.Xhist[:,1:2],muStartt,
-				  self._VOI._points,m2,self.path)
-		
 	    if self.miscObj.parallel:
 		self.optVOIParal(i,self.opt.numberParallel) 
 	    else:
 		self.optVOInoParal(i)
-            print i
+       
 	    #Otimize a_{n}
 	    if self.miscObj.parallel:
 		self.optAnParal(i,self.opt.numberParallel)
 	    else:
 		self.optAnnoParal(i)
-            print i
+    
 	#Optimize a_{n}
 	if self.miscObj.parallel:
 	    self.optAnParal(m,self.opt.numberParallel)
@@ -264,21 +230,26 @@ class SBO:
 	    i: Iteration of the algorithm.
             L: Cholesky decomposition of the matrix A, where A is the covariance
                matrix of the past obsevations (x,w).
-	    B: Matrix such that B(i,j) is \int\Sigma_{0}(x_{i},w,x_{j},w_{j})dp(w)
+	    B: Matrix such that
+	       B(i,j) is \int\Sigma_{0}(x_{i},w,x_{j},w_{j})dp(w)
 	       where points x_{p} is a point of the discretization of
                the space of x; and (x_{j},w_{j}) is a past observation.
             temp2: temp2=inv(L)*B.T.
-            a: Vector of the means of the GP on g(x)=E(f(x,w,z)). The means are evaluated on the
-               discretization of the space of x.
-	    scratch: matrix where scratch[i,:] is the solution of the linear system
-                     Ly=B[j,:].transpose() (See above for the definition of B and L)
+            a: Vector of the means of the GP on g(x)=E(f(x,w,z)).
+	       The means are evaluated on the discretization of the space of x.
+	    scratch: matrix where scratch[i,:] is the solution of the
+		     linear system Ly=B[j,:].transpose()
+		     (See above for the definition of B and L)
         """
 	
         def g(x,grad,onlyGradient=False):
-            return self.opt.functionGradientAscentVn(x,i=i,VOI=self._VOI,L=L,temp2=temp2,a=a,
-						 scratch=scratch,onlyGradient=onlyGradient,
-						 kern=self.stat._k,XW=self.dataObj.Xhist,
-						 Bfunc=self.stat.B,grad=grad)
+            return self.opt.functionGradientAscentVn(x,i=i,VOI=self._VOI,L=L,
+						     temp2=temp2,a=a,
+						     scratch=scratch,
+						     onlyGradient=onlyGradient,
+						     kern=self.stat._k,
+						     XW=self.dataObj.Xhist,
+						     Bfunc=self.stat.B,grad=grad)
 
 	if self.opt.MethodVn=="SLSQP":
 	    opt=op.SLSP(start)
@@ -291,8 +262,10 @@ class SBO:
 	    cons=self.opt.consVn
 	    opt.run(f=g1,df=dg,cons=cons)
 	else:
-	    opt=op.OptSteepestDescent(n1=self.opt.dimXsteepestVn,projectGradient=self.opt.projectGradient,
-				      stopFunction=self.opt.functionConditionOpt,xStart=start,
+	    opt=op.OptSteepestDescent(n1=self.opt.dimXsteepestVn,
+				      projectGradient=self.opt.projectGradient,
+				      stopFunction=self.opt.functionConditionOpt,
+				      xStart=start,
 				      xtol=self.opt.xtol)
 	    opt.run(f=g)
 
@@ -310,7 +283,8 @@ class SBO:
 	n1=self._n1
 	n2=self._dimW
 	tempN=self.numberTraining+i
-	A=self.stat._k.A(self.dataObj.Xhist[0:tempN,:],noise=self.dataObj.varHist[0:tempN])
+	A=self.stat._k.A(self.dataObj.Xhist[0:tempN,:],
+			 noise=self.dataObj.varHist[0:tempN])
 	L=np.linalg.cholesky(A)
 	m=self._VOI._points.shape[0]
 	for j in xrange(self.histSaved,tempN):
@@ -326,7 +300,8 @@ class SBO:
 	
 	scratch=np.zeros((m,tempN))
 	for j in xrange(m):
-	    scratch[j,:]=linalg.solve_triangular(L,self.Bhist[j,:].transpose(),lower=True)
+	    tempB=self.Bhist[j,:].transpose()
+	    scratch[j,:]=linalg.solve_triangular(L,tempB,lower=True)
 	args2={}
         args2['i']=i
 	args2['L']=L
@@ -352,7 +327,6 @@ class SBO:
 	tempN=self.numberTraining+i
 	st=np.concatenate((x1,w1),1)
 	args2=self.getParametersOptVoi(i)
-    #    args2['start']=st
 	self.optRuns.append(misc.VOIOptWrapper(self,st,**args2))
 	fl.writeNewPointSBO(self,self.optRuns[0])
 
@@ -416,9 +390,11 @@ class SBO:
         tempN=i+self.numberTraining
 
         def g(x,grad,onlyGradient=False):
-            return self.opt.functionGradientAscentAn(x,grad,self.stat,i,L,self.dataObj,
+            return self.opt.functionGradientAscentAn(x,grad,self.stat,i,L,
+						     self.dataObj,
 						     onlyGradient=onlyGradient,
-						     logproductExpectations=logProduct)
+						     logproductExpectations=
+						     logProduct)
 	if self.opt.MethodAn=="SLSQP":
 	    opt=op.SLSP(start)
 	    def g1(x):
@@ -430,15 +406,13 @@ class SBO:
 	    cons=self.opt.consAn
 	    opt.run(f=g1,df=dg,cons=cons)
 	else:
-	    opt=op.OptSteepestDescent(n1=self.opt.dimXsteepestAn,projectGradient=self.opt.projectGradient,
-				  xStart=start,xtol=self.opt.xtol,
-				  stopFunction=self.opt.functionConditionOpt)
+	    opt=op.OptSteepestDescent(n1=self.opt.dimXsteepestAn,
+				      projectGradient=self.opt.projectGradient,
+				      xStart=start,xtol=self.opt.xtol,
+				      stopFunction=self.opt.functionConditionOpt)
 	    opt.run(f=g)
 
-        #opt.run(f=g)
         self.optRuns.append(opt)
-       # xTrans=self.opt.transformationDomainXAn(opt.xOpt[0:1,0:self.opt.dimXsteepestAn])
-       # self.optPointsArray.append(xTrans)
     
     def optAnnoParal(self,i,logProd=True):
 	"""
@@ -452,7 +426,8 @@ class SBO:
 	n1=self._n1
 	tempN=i+self.numberTraining
 	
-	A=self.stat._k.A(self.dataObj.Xhist[0:tempN,:],noise=self.dataObj.varHist[0:tempN])
+	A=self.stat._k.A(self.dataObj.Xhist[0:tempN,:],
+			 noise=self.dataObj.varHist[0:tempN])
 	L=np.linalg.cholesky(A)
 	
 	if logProd:
@@ -484,7 +459,8 @@ class SBO:
         try:
             n1=self._n1
 	    tempN=i+self.numberTraining
-	    A=self.stat._k.A(self.dataObj.Xhist[0:tempN,:],noise=self.dataObj.varHist[0:tempN])
+	    A=self.stat._k.A(self.dataObj.Xhist[0:tempN,:],
+			     noise=self.dataObj.varHist[0:tempN])
 	    L=np.linalg.cholesky(A)
 	    
 	    if logProd:
@@ -502,7 +478,8 @@ class SBO:
             jobs = []
             pool = mp.Pool(processes=numProcesses)
             for j in range(nStart):
-                job = pool.apply_async(misc.AnOptWrapper, args=(self,Xst[j:j+1,:],), kwds=args3)
+                job = pool.apply_async(misc.AnOptWrapper,
+				       args=(self,Xst[j:j+1,:],), kwds=args3)
                 jobs.append(job)
             pool.close()  # signal that no more data coming in
             pool.join()  # wait for all the tasks to complete
@@ -534,10 +511,13 @@ class SBO:
 		       the hyperparameters.
         """
 	if self.miscObj.parallel:
-	    self.stat._k.train(scaledAlpha=self.stat.scaledAlpha,numStarts=numStarts,**kwargs)
+	    self.stat._k.train(scaledAlpha=self.stat.scaledAlpha,
+			       numStarts=numStarts,**kwargs)
 	else:
-	    self.stat._k.trainnoParallel(scaledAlpha=self.stat.scaledAlpha,**kwargs)
-        f=open(os.path.join(self.path,'%d'%self.miscObj.rs+"hyperparameters.txt"),'w')
+	    self.stat._k.trainnoParallel(scaledAlpha=self.stat.scaledAlpha,
+					 **kwargs)
+        f=open(os.path.join(self.path,'%d'%self.miscObj.rs+
+			    "hyperparameters.txt"),'w')
         f.write(str(self.stat._k.getParamaters()))
         f.close()
 

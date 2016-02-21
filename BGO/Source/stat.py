@@ -38,14 +38,16 @@ class GaussianProcess:
             -trainingData: Data object.
         """
         self._k=kernel
-        self._numberTraining=numberTraining ##number of points used to train the kernel
+        self._numberTraining=numberTraining
+        ##number of points used to train the kernel
         self._n=dimKernel
         self.scaledAlpha=scaledAlpha
         if trainingData is not None:
             self.data=trainingData.copyData()
     
 class SBOGP(GaussianProcess):
-    def __init__(self,B,dimNoiseW,dimPoints,gradXBforAn=None, computeLogProductExpectationsForAn=None,
+    def __init__(self,B,dimNoiseW,dimPoints,gradXBforAn=None,
+                 computeLogProductExpectationsForAn=None,
                  SEK=True,*args,**kargs):
         GaussianProcess.__init__(self,*args,**kargs)
         """
@@ -62,7 +64,8 @@ class SBOGP(GaussianProcess):
                                             of the product of the
                                             expectations of
                                             np.exp(-alpha2[j]*((z-W[i,j])**2))
-                                            where W[i,:] is a point in the history.
+                                            where W[i,:] is a point in
+                                            the history.
                                             Only used with the SEK.
             -dimNoiseW: Dimension of w.
             -dimPoints: Dimension of x.
@@ -74,17 +77,18 @@ class SBOGP(GaussianProcess):
                             n: Current iteration of the algorithm
                             B: Vector {B(x,i)} for i in {1,...,n}
                             kern: kernel
-                            X: Past observations X[i,:] for i in {1,..,n+nTraining}
+                            X: Past observations X[i,:] for i in
+                                {1,..,n+nTraining}
             -computeLogProductExpectationsForAn: Only used with the SEK.
-                                                 Computes the logarithm of the product
-                                                 of the expectations of
-                                                 np.exp(-alpha2[j]*((z-W[i,j])**2))
-                                                 where W[i,:] is a point in the history.
-                                                 Its arguments are:
-                                                   W: Matrix where each row is a past
-                                                      random vector used W[i,:]
-                                                   N: Number of observations
-                                                   kernel: kernel
+                                        Computes the logarithm of the product
+                                        of the expectations of
+                                        np.exp(-alpha2[j]*((z-W[i,j])**2))
+                                        where W[i,:] is a point in the history.
+                                        Its arguments are:
+                                            W: Matrix where each row is a past
+                                               random vector used W[i,:]
+                                            N: Number of observations
+                                            kernel: kernel
             -SEK: True if SEK is used; False otherwise. 
         """
         self.SBOGP_name="SBO"
@@ -101,12 +105,14 @@ class SBOGP(GaussianProcess):
             self.gradXBforAn=gradients.gradXBforAnSEK
             
 
-    def aN_grad(self,x,L,n,dataObj,gradient=True,onlyGradient=False,logproductExpectations=None):
+    def aN_grad(self,x,L,n,dataObj,gradient=True,onlyGradient=False,
+                logproductExpectations=None):
         """
         Computes a_{n} and it can compute its derivative. It evaluates a_{n},
-        when grad and onlyGradient are False; it evaluates the a_{n} and computes its
-        derivative when grad is True and onlyGradient is False, and computes only its
-        gradient when gradient and onlyGradient are both True.
+        when grad and onlyGradient are False; it evaluates the a_{n} and
+        computes its derivative when grad is True and onlyGradient is False,
+        and computes only its gradient when gradient and onlyGradient are
+        both True.
         
         Args:
             x: a_{n} is evaluated at x.
@@ -115,9 +121,11 @@ class SBOGP(GaussianProcess):
             n: Step of the algorithm.
             dataObj: Data object (it contains all the history).
             gradient: True if we want to compute the gradient; False otherwise.
-            onlyGradient: True if we only want to compute the gradient; False otherwise.
-            logproductExpectations: Vector with the logarithm of the product of the
-                                    expectations of np.exp(-alpha2[j]*((z-W[i,j])**2))
+            onlyGradient: True if we only want to compute the gradient;
+                         False otherwise.
+            logproductExpectations: Vector with the logarithm of the product
+                                    of the expectations of
+                                    np.exp(-alpha2[j]*((z-W[i,j])**2))
                                     where W[i,:] is a point in the history.
                                     --Only with the SEK--
         """
@@ -132,7 +140,8 @@ class SBOGP(GaussianProcess):
                 B[i]=self.B(x,dataObj.Xhist[i,:],self.n1,self.n2,self._k)
         else:
             for i in xrange(n+self._numberTraining):
-                B[i]=self.B(x,dataObj.Xhist[i,:],self.n1,self.n2,self._k,logproductExpectations[i])
+                B[i]=self.B(x,dataObj.Xhist[i,:],self.n1,self.n2,self._k,
+                            logproductExpectations[i])
         
         inv1=linalg.solve_triangular(L,y2,lower=True)
 
@@ -156,7 +165,6 @@ class SBOGP(GaussianProcess):
         else:
             return aN
         
-    ##only checked for the analytic example. Not optimal.
     def VarF(self,n,x,X,W,L,kernel,Bf,n1=1,n2=1,scaleAlpha=1.0):
         alpha2=0.5*((kernel.alpha[n1:n1+n2])**2)/scaleAlpha**2
 
@@ -164,19 +172,16 @@ class SBOGP(GaussianProcess):
         for i in xrange(n+self._numberTraining):
             B[:,i]=Bf(x,np.array([X[i,:],W[i,:]]),n1,n2,kernel)
         temp2=linalg.solve_triangular(L,B.T,lower=True)
-
-      #  Ainv=linalg.inv(A)
-
-       # temp2=linalg.solve_triangular(L,B.T,lower=True)
         return kernel.variance*.5*(1.0/((.25+alpha2)**.5))-np.dot(temp2.T,temp2)
         
-    ####Check only for analytic example
+    ####Only for analytic example
     def plotAn(self,i,L,points,path,data,X,W,kernel,Bf,logproduct):
         m=points.shape[0]
         z=np.zeros(m)
         var=np.zeros(m)
         for j in xrange(m):
-            z[j]=self.aN_grad(points[j,:],L,i,data,logproductExpectations=logproduct,gradient=False)
+            z[j]=self.aN_grad(points[j,:],L,i,data,
+                              logproductExpectations=logproduct,gradient=False)
             var[j]=self.VarF(i,points[j,:],X,W,L,kernel,Bf)
         
         fig=plt.figure()
@@ -196,27 +201,19 @@ class SBOGP(GaussianProcess):
         box = ax.get_position()
         ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
 
-        # Put a legend to the right of the current axis
+
         ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-    #    plt.legend()
         pylab.ylim([-1.5,0.5])
         pylab.xlim([-0.5,0.5])
         plt.savefig(os.path.join(path,'%d'%i+"a_n.pdf"))
         plt.close(fig)
 
-       ###only for analytic example 
+       ###Only for the analytic example 
     def plotmuN(self,n,L,temp1,kern,X,W,muStart,points,m,path):
         w1=np.linspace(-3,3,m)
         C,D=np.meshgrid(points,w1)
-     #   X=self._X
-     #   W=self._W
-     #   y=self._y[:,0]
-     #   m=C.shape[0]
-
         B=np.zeros([m*m,n+self._numberTraining])
         muN=np.zeros((m,m))
-
-      #  temp1=linalg.solve_triangular(L,np.array(y)-self._muStart,lower=True)
         for j in xrange(m):
             for k in xrange(m):
                 for i in xrange(n+self._numberTraining):
@@ -229,9 +226,6 @@ class SBOGP(GaussianProcess):
         num_levels = 5
         CS=plt.contourf(C,D,muN,num_levels,cmap=plt.cm.PRGn)
         plt.colorbar(CS)
-       # plt.clabel(CS, inline=1, fontsize=30)
-       # plt.title('Contours of estimation of F(x,w)')
-       # plt.legend()
         plt.xlabel('x',fontsize=60)
         plt.ylabel('w',fontsize=60)
         plt.savefig(os.path.join(path,'%d'%n+"muN.pdf"))
@@ -263,14 +257,12 @@ class EIGP(GaussianProcess):
         
         for i in xrange(tempN):
             B[:,i]=self._k.K(x,X[i:i+1,:])
-            
-       # y=self._yHist[0:tempN,:]
+
         temp2=linalg.solve_triangular(L,B.T,lower=True)
         
         if grad:
             gradX=self.gradXKern(x,n,self._k,self._numberTraining,X,self.n1)
             gradi=np.zeros(self.n1)
-          #  temp3=linalg.solve_triangular(L,y-muStart,lower=True)
             
             for j in xrange(self.n1):
                 temp5=linalg.solve_triangular(L,gradX[:,j].T,lower=True)
@@ -280,20 +272,9 @@ class EIGP(GaussianProcess):
         if onlyGrad:
             return gradi
         
-            
-     #   x=np.array(x)
-     #   m=1
-        
-     #   X=self._Xhist[0:tempN,:]
-     #   A=self._k.A(self._Xhist[0:tempN,:],noise=self._noiseHist[0:tempN])
-     #   L=np.linalg.cholesky(A)
-
-       # muStart=self._k.mu
-       # temp1=linalg.solve_triangular(L,np.array(y)-muStart,lower=True)
         a=muStart+np.dot(temp2.T,temp1)
         if grad==False:
             return a
-     #   x=np.array(x).reshape((1,self.n1))
 
         return a,gradi
     
@@ -344,7 +325,7 @@ class KG(GaussianProcess):
             gradi[j]=np.dot(temp2.T,temp1)
         return a,gradi
 
-       ###only for analytic example 
+       ###Only for the analytic example 
     def plotmuN(self,n,L,temp1,points,m,path,data,kern,Xhist):
         w1=np.linspace(-0.5,0.5,m)
         z=np.zeros(m)
@@ -354,7 +335,8 @@ class KG(GaussianProcess):
         B2=np.zeros([1,tempN])
         
         for i in xrange(m):
-            z[i]=self.muN(points[i,:],n,data,L,temp1,grad=False,onlyGradient=False)
+            z[i]=self.muN(points[i,:],n,data,L,temp1,grad=False,
+                          onlyGradient=False)
             temp=kern.K(np.array(points[i,:]).reshape((1,self.n1)))
             for j in xrange(tempN):
                 B2[0,j]=kern.K(points[i:i+1,:],Xhist[j:j+1,:])
@@ -377,7 +359,6 @@ class KG(GaussianProcess):
         plt.plot(points,confidence2,'--',color='r')
         ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
         pylab.xlim([-0.5,0.5]) 
-       # plt.legend()
         plt.savefig(os.path.join(path,'%d'%n+"mu_n.pdf"))
         plt.close(fig)
         
@@ -409,14 +390,11 @@ class PIGP(GaussianProcess):
         if grad==False:
             return a
         x=np.array(x).reshape((1,self.n1))
-       # gradX=np.zeros((n,self.n1))
         gradX=self.gradXKern(x,n,self)
         gradi=np.zeros(self.n1)
         temp3=linalg.solve_triangular(L,y-muStart,lower=True)
         
         for j in xrange(self.n1):
-           # for i in xrange(n):
-           #     gradX[i,j]=self._k.K(x,X[i,:].reshape((1,self._n1)))*(2.0*self._alpha1[j]*(x[0,j]-X[i,j]))
             temp2=linalg.solve_triangular(L,gradX[:,j].T,lower=True)
             gradi[j]=muStart+np.dot(temp2.T,temp3)
         return a,gradi
@@ -427,7 +405,8 @@ class PIGP(GaussianProcess):
         tempN=self._numberTraining+n
         sigmaVec=np.zeros((tempN,1))
         for i in xrange(tempN):
-            sigmaVec[i,0]=self._k.K(np.array(x).reshape((1,self.n1)),self._Xhist[i:i+1,:])[:,0]
+            sigmaVec[i,0]=self._k.K(np.array(x).reshape((1,self.n1)),
+                                    self._Xhist[i:i+1,:])[:,0]
         A=self._k.A(self._Xhist[0:tempN,:],noise=self._noiseHist[0:tempN])
         L=np.linalg.cholesky(A)
         temp3=linalg.solve_triangular(L,sigmaVec,lower=True)
@@ -440,10 +419,7 @@ class PIGP(GaussianProcess):
             x=np.array(x).reshape((1,self.n1))
 
             gradX=self.gradXKern(x,n,self)
-            #gradX=np.zeros((n,self._n1))
             for j in xrange(self.n1):
-              #  for i in xrange(n):
-                  #  gradX[i,j]=self._k.K(x,self._X[i,:].reshape((1,self._n1)))*(2.0*self._alpha1[j]*(x[0,j]-self._X[i,j]))
                 temp5=linalg.solve_triangular(L,gradX[:,j].T,lower=True)
                 gradi[j]=np.dot(temp5.T,temp3)
             gradVar=-2.0*gradi

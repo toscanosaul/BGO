@@ -49,7 +49,8 @@ class VOI:
             -n: Iteration of the algorithm
             -pointNew: The VOI will be evaluated at this point.
             -grad: True if we want to compute the gradient; False otherwise.
-            -onlyGradient: True if we only want to compute the gradient; False otherwise.
+            -onlyGradient: True if we only want to compute the gradient;
+                            False otherwise.
         """
         raise NotImplementedError, "this needs to be implemented"
         
@@ -137,15 +138,15 @@ class VOISBO(VOI):
             -n: Iteration of the algorithm
             -x: nxdim(x) matrix where b is evaluated.
             -(xNew,wNew): The VOI will be evaluated at this point.
-            -L: Cholesky decomposition of the matrix A, where A is the covariance
-                matrix of the past obsevations (x,w).
+            -L: Cholesky decomposition of the matrix A, where A is
+                the covariance matrix of the past obsevations (x,w).
             -temp2:temp2=inv(L)*B.T, where B is a matrix such that B(i,j) is
                    \int\Sigma_{0}(x_{i},w,x_{j},w_{j})dp(w)
                    where points x_{p} is a point of the discretization of
                    the space of x; and (x_{j},w_{j}) is a past observation.
             -past: Past observations.
             -kernel: kernel.
-            -B: Computes B(x,XW)=\int\Sigma_{0}(x,w,XW[0:n1],XW[n1:n1+n2])dp(w).
+            -B: Computes B(x,XW)=\int\Sigma_{0}(x,w,XW[0:n1],XW[n1:n1+n2])dp(w)
                 Its arguments are:
                     -x: Vector of points where B is evaluated
                     -XW: Point (x,w)
@@ -217,10 +218,12 @@ class VOISBO(VOI):
             -aux4: Square of the norm of inv.
             -kern: Kernel.
             -XW: Past observations.
-            -scratch: Matrix where scratch[i,:] is the solution of the linear system
-                      Ly=B[j,:].transpose() (See above for the definition of B and L)
+            -scratch: Matrix where scratch[i,:] is the solution of the
+                      linear system Ly=B[j,:].transpose()
+                      (See above for the definition of B and L)
             -grad: True if we want to compute the gradient; False otherwise.
-            -onlyGradient: True if we only want to compute the gradient; False otherwise.
+            -onlyGradient: True if we only want to compute the gradient;
+                           False otherwise.
         """
         n1=self.n1
         n2=self.n2
@@ -265,7 +268,8 @@ class VOISBO(VOI):
         result=np.zeros(n1+n2)
 
         for i in xrange(n1):
-            inv2=linalg.solve_triangular(L,gradientGamma[i,0:tempN].transpose(),lower=True)
+            inv2=linalg.solve_triangular(L,gradientGamma[i,0:tempN].transpose(),
+                                         lower=True)
             aux5=np.dot(inv2.T,inv3)
             for j in xrange(M):
                 tmp=np.dot(inv2.T,scratch[j,:])
@@ -276,7 +280,8 @@ class VOISBO(VOI):
             result[i]=np.dot(np.diff(gradient),evalC)
 
         for i in xrange(n2):
-            inv2=linalg.solve_triangular(L,gradientGamma[i+n1,0:tempN].transpose(),lower=True)
+            inv2=linalg.solve_triangular(L,gradientGamma[i+n1,0:tempN].transpose(),
+                                         lower=True)
             aux5=np.dot(inv2.T,inv3)
             for j in xrange(M):
                 tmp=np.dot(inv2.T,scratch[j,:])
@@ -292,7 +297,8 @@ class VOISBO(VOI):
         h=hvoi(bPrev,cPrev,keep1) 
         return h,result
 
-    def VOIfunc(self,n,pointNew,grad,L,temp2,a,scratch,kern,XW,B,onlyGradient=False):
+    def VOIfunc(self,n,pointNew,grad,L,temp2,a,scratch,kern,XW,B,
+                onlyGradient=False):
         """
         Output:
             Evaluates the VOI and it can compute its derivative. It evaluates
@@ -314,8 +320,9 @@ class VOISBO(VOI):
             -a: Vector of the means of the GP on g(x)=E(f(x,w,z)).
                 The means are evaluated on the discretization of
                 the space of x.
-            -scratch: Matrix where scratch[i,:] is the solution of the linear system
-                      Ly=B[j,:].transpose() (See above for the definition of B and L)
+            -scratch: Matrix where scratch[i,:] is the solution of the
+                      linear system Ly=B[j,:].transpose()
+                      (See above for the definition of B and L)
             -kern: Kernel.
             -XW: Past observations.
             -B: Computes B(x,XW)=\int\Sigma_{0}(x,w,XW[0:n1],XW[n1:n1+n2])dp(w).
@@ -324,14 +331,16 @@ class VOISBO(VOI):
                     -XW: Point (x,w)
                     -n1: Dimension of x
                     -n2: Dimension of w
-            -onlyGradient: True if we only want to compute the gradient; False otherwise.
+            -onlyGradient: True if we only want to compute the gradient;
+                           False otherwise.
         """
 
         n1=self.n1
         pointNew=pointNew.reshape([1,n1+self.n2])
 
-        b,gamma,BN,temp1,aux4=self.aANDb(n,self._points,pointNew[0,0:n1],pointNew[0,n1:n1+self.n2],L,
-                                    temp2=temp2,past=XW,kernel=kern,B=B)
+        b,gamma,BN,temp1,aux4=self.aANDb(n,self._points,pointNew[0,0:n1],
+                                         pointNew[0,n1:n1+self.n2],L,
+                                         temp2=temp2,past=XW,kernel=kern,B=B)
 
         a,b,keep=AffineBreakPointsPrep(a,b)
         keep1,c=AffineBreakPoints(a,b)
@@ -345,51 +354,19 @@ class VOISBO(VOI):
             for j in xrange(M):
                 scratch1[j,:]=scratch[keep2[j],:]
         if onlyGradient:
-            return self.evalVOI(n,pointNew,a,b,c,keep,keep1,M,gamma,BN,L,scratch=scratch1,
-                                inv=temp1,aux4=aux4,grad=True,onlyGradient=onlyGradient,
+            return self.evalVOI(n,pointNew,a,b,c,keep,keep1,M,gamma,BN,L,
+                                scratch=scratch1,
+                                inv=temp1,aux4=aux4,grad=True,
+                                onlyGradient=onlyGradient,
                                 kern=kern,XW=XW)
         if grad==False:
-            return self.evalVOI(n,pointNew,a,b,c,keep,keep1,M,gamma,BN,L,aux4=aux4,inv=temp1,
+            return self.evalVOI(n,pointNew,a,b,c,keep,keep1,M,gamma,BN,L,
+                                aux4=aux4,inv=temp1,
                                 kern=kern,XW=XW)
         
         return self.evalVOI(n,pointNew,a,b,c,keep,keep1,M,gamma,BN,L,aux4=aux4,
                             inv=temp1,scratch=scratch1,grad=True,
                             kern=kern,XW=XW)
-
-    ####Check SBO only for analytic example
-###fix plotVOI
-    def plotVOI(self,n,L,path,data,temp2,a,scratch,kern,XW,B,m,points):
-        w1=np.linspace(min(-0.5,-np.max(abs(XW[:,1])))-1.0,max(0.5,np.max(abs(XW[:,1])))+1.0,m)
-        C,D=np.meshgrid(points,w1)
-        z=np.zeros((m,m))
-        for j in xrange(m):
-            for k in xrange(m): 
-                z[j,k]=self.VOIfunc(n,np.array([[C[j,k],D[j,k]]]),False,L,temp2,a,scratch,kern,XW,B)
-        
-        
-        fig=plt.figure()
-        num_levels = 5
-        fig.set_size_inches(24, 24)
-        CS=plt.contourf(C,D,z,num_levels,cmap=plt.cm.PRGn)
-        plt.colorbar(CS)
-        Xp=XW[0:self._numberTraining,0]
-        Wp=XW[0:self._numberTraining,1]
-        pylab.plot(Xp,Wp,'o',color='red',markersize=30,label="Training point")
-        if n>0:
-            Xp=XW[self._numberTraining:self._numberTraining+n,0]
-            Wp=XW[self._numberTraining:self._numberTraining+n,1]
-            pylab.plot(Xp,Wp,'o',color='firebrick',markersize=30,label="Chosen point")
-        ax = plt.subplot(111)
-        box = ax.get_position()
-        ax.set_position([box.x0, box.y0+box.height*0.1, box.width, box.height*0.9])
-
-        # Put a legend to the right of the current axis
-        ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.09),ncol=2)
-        plt.xlabel('x',fontsize=60)
-        plt.ylabel('w',fontsize=60)
-        plt.savefig(os.path.join(path,'%d'%n+"VOI.pdf"))
-
-        plt.close(fig)
 
 
 class EI(VOI):
@@ -409,13 +386,6 @@ class EI(VOI):
         muStart=kern.mu
         temp=kern.K(np.array(x).reshape((1,self.n1)))
         tempN=self._numberTraining+n
-    #    sigmaVec=np.zeros((tempN,1))
-      #  for i in xrange(tempN):
-       #     sigmaVec[i,0]=self._k.K(np.array(x).reshape((1,self.n1)),self._Xhist[i:i+1,:])[:,0]
-       # A=self._k.A(self._Xhist[0:tempN,:],noise=self._noiseHist[0:tempN])
-       # L=np.linalg.cholesky(A)
-       # temp3=linalg.solve_triangular(L,sigmaVec,lower=True)
-       ###now temp3=temp2 (!!!!!!)
         res=np.dot(temp2.T,temp2)
         res=temp-res
         if grad==False:
@@ -424,10 +394,8 @@ class EI(VOI):
         else:
             gradi=np.zeros(self.n1)
             x=np.array(x).reshape((1,self.n1))
-
-         #   gradX=self.gradXKern(x,n,self)
+            
             for j in xrange(self.n1):
-                #temp5=linalg.solve_triangular(L,gradX[:,j].T,lower=True)
                 gradi[j]=np.dot(temp5[j,:],temp2)
             gradVar=-2.0*gradi
             return res,gradVar
@@ -437,47 +405,26 @@ class EI(VOI):
         x=np.array(x).reshape((1,self.n1))
         m=1
         tempN=self._numberTraining+n
-     #   B=np.zeros([m,tempN])
-        
-     #   for i in xrange(tempN):
-     #       B[:,i]=self._k.K(x,X[i:i+1,:])
-            
-       # y=self._yHist[0:tempN,:]
-        #temp2=linalg.solve_triangular(L,B.T,lower=True)
-        
+
         if grad:
-        #    gradX=self.gradXKern(x,n,self)
             gradi=np.zeros(self.n1)
-          #  temp3=linalg.solve_triangular(L,y-muStart,lower=True)
             
             for j in xrange(self.n1):
-               # temp5=linalg.solve_triangular(L,gradX[:,j].T,lower=True)
                 gradi[j]=np.dot(temp5[j,:],temp1)
             
-        
         if onlyGrad:
             return gradi
         
-            
-     #   x=np.array(x)
-     #   m=1
-        
-     #   X=self._Xhist[0:tempN,:]
-     #   A=self._k.A(self._Xhist[0:tempN,:],noise=self._noiseHist[0:tempN])
-     #   L=np.linalg.cholesky(A)
-
-       # muStart=self._k.mu
-       # temp1=linalg.solve_triangular(L,np.array(y)-muStart,lower=True)
         a=muStart+np.dot(temp2.T,temp1)
         if grad==False:
             return a
-     #   x=np.array(x).reshape((1,self.n1))
 
         return a,gradi
       
       
       
-    def VOIfunc(self,n,pointNew,grad,maxObs,kern,Xhist,L,temp1,onlyGradient=False):
+    def VOIfunc(self,n,pointNew,grad,maxObs,kern,Xhist,L,temp1,
+                onlyGradient=False):
         xNew=pointNew
         nTraining=self._numberTraining
         tempN=self._numberTraining+n
@@ -490,23 +437,15 @@ class EI(VOI):
             
         temp2=linalg.solve_triangular(L,B.T,lower=True)
         
-        ##gradient
         if grad:
             gradX=self.gradXKern(xNew,n,kern,self._numberTraining,Xhist,self.n1)
-      #   #   temp3=linalg.solve_triangular(L,y-muStart,lower=True)
             temp5inv=np.zeros((self.n1,tempN))
             for j in xrange(self.n1):
                 temp5inv[j,:]=linalg.solve_triangular(L,gradX[:,j].T,lower=True)
-       #       #  gradi[j]=muStart+np.dot(temp5.T,temp1)
-        #########
-        
+
         if grad:
-           
             muNew,gradMu=self.muN(xNew,n,L,temp1,temp2,kern,temp5inv,grad=True)
-            
             var,gradVar=self.varN(xNew,n,L,temp2,kern,temp5inv,grad=True)
-            
-            
             std=np.sqrt(var)
             gradstd=.5*gradVar/std
             gradZ=((std*gradMu)-(muNew-maxObs)*gradstd)/var
@@ -518,22 +457,10 @@ class EI(VOI):
             var=self.varN(xNew,n,L,temp2,kern,None,grad=False)
             std=np.sqrt(var)
             Z=(muNew-maxObs)/std
-         #   std=np.sqrt(self.varN(xNew,n,L,temp1,temp2,grad=False))
-         #   muNew=self.muN(xNew,n,L,temp1,temp2,grad=False)
-            
-            
+
         if onlyGradient:
             return temp10
-            
-      
-       # vec=np.zeros(tempN)
-       # X=self._PointsHist
-       # for i in xrange(tempN):
-           # vec[i]=self._GP.muN(X[i,:],n)
-    #    vec=vecMuN
-#        maxObs=np.max(vec)
-        
-        
+
         temp1=(muNew-maxObs)*norm.cdf(Z)+std*norm.pdf(Z)
         if grad==False:
             return temp1
@@ -554,66 +481,47 @@ class KG(VOI):
             self.gradXKern=gradients.gradXKernelSEK
             self.gradXKern2=gradients.gradXKernel2SEK
 
-
-      
-     ##return a_n and b_n
-    ##x is a vector of points (x is as matrix) where a_n and sigma_n are evaluated  
     def aANDb(self,n,x,xNew,L,data,kern,temp1,temp2):
         tempN=n+self._numberTraining
         x=np.array(x)
         xNew=xNew.reshape((1,self.n1))
         m=x.shape[0]
-   #     A=self._k.A(self._Xhist[0:tempN,:],noise=self._noiseHist[0:tempN])
-    #    L=np.linalg.cholesky(A)
-     #   B=np.zeros([m,tempN])
         X=data.Xhist
         y=data.yHist
 
-      #  for i in xrange(tempN):
-       #     B[:,i]=self._k.K(x,X[i:i+1,:])[:,0]
+
         muStart=kern.mu
-      #  temp1=linalg.solve_triangular(L,np.array(y)-muStart,lower=True)
         temp4=kern.K(xNew,X)
         temp5=linalg.solve_triangular(L,temp4.T,lower=True)
         inner=np.dot(temp5.T,temp5)
 
         BN=kern.K(xNew)[:,0]-inner
-     #   a=np.zeros(m)
         b=np.zeros(m)
         tempKern=np.zeros(m)
-        ##############
+
         tempB=kern.K(x,xNew)
         for j in xrange(m):
-          #  temp2=linalg.solve_triangular(L,B[j,:].T,lower=True)
             temp3=np.dot(temp2[j],temp5)
-          #  tempKern[j]=kern.K(x[j:j+1,:],xNew)[:,0]
-           # a[j]=muStart+np.dot(temp2[j],temp1)
-       #     b[j]=-temp3+kern.K(x[j:j+1,:],xNew)[:,0]
             b[j]=-temp3+tempB[j,:]
             b[j]=b[j]/sqrt(float(BN))
-        ######error check again!!!!!!!!!!
-        ######
+
         return b,temp5,inner,tempB
       
-    def evalVOI(self,n,pointNew,a,b,c,keep,keep1,M,L,X,kern,tempB,temp22=None,inner=None,inv1=None,grad=True,onlyGrad=False):
+    def evalVOI(self,n,pointNew,a,b,c,keep,keep1,M,L,X,kern,tempB,temp22=None,
+                inner=None,inv1=None,grad=True,onlyGrad=False):
         if grad==False:
             h=hvoi(b,c,keep1)
             return h
-        
-    #    a,b,keep=AffineBreakPointsPrep(a,b)
-    #    keep1,c=AffineBreakPoints(a,b)
-    #    keep1=keep1.astype(np.int64)
         n1=self.n1
-     #   h=hvoi(b,c,keep1) ##Vn
         aOld=a
         bOld=b
         cOld=c
         keepOld=keep
-        ####Gradient
+        
         a=a[keep1]
         b=b[keep1]
         keep=keep[keep1] #indices conserved
-       # M=len(keep)
+
         if M<=1 and onlyGrad==False:
             h=hvoi(bOld,cOld,keep1)
             return h,np.zeros(self._dimKernel)
@@ -627,44 +535,31 @@ class KG(VOI):
         nTraining=self._numberTraining
         tempN=nTraining+n
         B=np.zeros((1,tempN))
-       # X=self._PointsHist
-      #  for i in xrange(tempN):
-       #     B[0,i]=kern.K(pointNew,X[i:i+1,:])[:,0]
-            
-#        temp22=linalg.solve_triangular(L,B,lower=True)
 
         gradX=self.gradXKern(pointNew,n,kern,self._numberTraining,X,n1)
         
         temp=np.zeros([tempN,n1])
-       # tmp100=norm.pdf(c2)
+
         gradient=np.zeros(n1)
         B2=np.zeros((1,tempN))
         temp54=np.zeros(M)
-      #  sigmaXnew=sqrt(kern.K(np.array(pointNew).reshape((1,n1)))-np.dot(temp22.T,temp22))
+        
         kernNew=kern.K(np.array(pointNew).reshape((1,n1)))
         sigmaXnew=sqrt(kernNew-inner)
-   #     inv3=linalg.solve_triangular(L,B[0,:],lower=True)
+
         inv3=temp22
         beta1=(kern.A(pointNew)-np.dot(inv3.T,inv3))
         
         beta2=np.zeros(M)
-      #  for i in xrange(M):
-       #     beta2[i]=kern.K(self._points[keep[i]:keep[i]+1,:],pointNew)-np.dot(inv1[i,:],inv3)
+
         beta2=tempB[keep]-np.dot(inv1,inv3)
         grad2=self.gradXKern2(pointNew,tempB[keep],self._points[keep,:],n1,M,kern)
         for j in xrange(n1):
             inv2=linalg.solve_triangular(L,gradX[:,j],lower=True)
             auxTemp=2.0*np.dot(inv2.T,inv3)
             for i in xrange(M):
-               # for p1 in xrange(tempN):
-                   # B2[0,p1]=self._k.K(self._points[keep[i]:keep[i]+1,:],X[p1:p1+1,:])[:,0]
-              #  inv1=linalg.solve_triangular(L,B2.T,lower=True)
-                
 		tmp=np.dot(inv2.T,inv1[i,:])
-    
-              #  temp53=self.gradXKern2(pointNew,i,keep,j,kern,self._points[keep[i],j])
 		tmp=(beta1**(-.5))*(grad2[j,i]-tmp)
-                
                 tmp2=(.5)*(beta1**(-1.5))*beta2[i]*(auxTemp)
                 temp54[i]=tmp+tmp2
             gradient[j]=np.dot(np.diff(temp54),evalC)
@@ -676,7 +571,8 @@ class KG(VOI):
     def VOIfunc(self,n,pointNew,L,data,kern,temp1,temp2,grad,a,onlyGrad=False):
         n1=self.n1
         tempN=n+self._numberTraining
-        b,temp5,inner,tempB=self.aANDb(n,self._points,pointNew,L,data,kern,temp1,temp2)
+        b,temp5,inner,tempB=self.aANDb(n,self._points,pointNew,L,data,kern,
+                                       temp1,temp2)
         a,b,keep=AffineBreakPointsPrep(a,b)
         keep1,c=AffineBreakPoints(a,b)
         keep1=keep1.astype(np.int64)
@@ -688,30 +584,35 @@ class KG(VOI):
             for j in xrange(M):
                 inv1temp[j,:]=temp2[keep2[j],:]
         if onlyGrad:
-            return self.evalVOI(n,pointNew,a,b,c,keep,keep1,M,L,data.Xhist,kern,tempB,temp5,inner,inv1temp,grad,onlyGrad)
+            return self.evalVOI(n,pointNew,a,b,c,keep,keep1,M,L,data.Xhist,kern,
+                                tempB,temp5,inner,inv1temp,grad,onlyGrad)
         if grad==False:
-            return self.evalVOI(n,pointNew,a,b,c,keep,keep1,M,L,data.Xhist,kern,tempB,grad=False)
+            return self.evalVOI(n,pointNew,a,b,c,keep,keep1,M,L,data.Xhist,kern,
+                                tempB,grad=False)
 
-        return self.evalVOI(n,pointNew,a,b,c,keep,keep1,M,L,data.Xhist,kern,tempB,temp5,inner,inv1temp,grad)
+        return self.evalVOI(n,pointNew,a,b,c,keep,keep1,M,L,data.Xhist,kern,
+                            tempB,temp5,inner,inv1temp,grad)
 
 
-
-    ###checked only for analytic example
+    #Only for the analytic example
     def plotVOI(self,n,points,L,data,kern,temp1,temp2,a,m,path):
         z=np.zeros(m)
         
         for i in xrange(m):
-            z[i]=self.VOIfunc(n,points[i,:],L,data,kern,temp1,temp2,False,a,False)
+            z[i]=self.VOIfunc(n,points[i,:],L,data,kern,temp1,
+                              temp2,False,a,False)
             
         fig=plt.figure()
         fig.set_size_inches(21, 21)
         plt.plot(points,z,'-')
         plt.xlabel('x',fontsize=60)
         Xp=data.Xhist[0:self._numberTraining,0]
-        pylab.plot(Xp,np.zeros(len(Xp))+0.00009,'o',color='red',markersize=40,label="Training point")
+        pylab.plot(Xp,np.zeros(len(Xp))+0.00009,'o',color='red',
+                   markersize=40,label="Training point")
         if n>0:
             Xp=data.Xhist[self._numberTraining:self._numberTraining+n,0]
-            pylab.plot(Xp,np.zeros(len(Xp))+0.00009,'o',color='firebrick',markersize=40,label="Chosen point")
+            pylab.plot(Xp,np.zeros(len(Xp))+0.00009,'o',color='firebrick',
+                       markersize=40,label="Chosen point")
         ax = plt.subplot(111)
         box = ax.get_position()
         ax.set_position([box.x0, box.y0+box.height*0.1, box.width, box.height*0.9])
@@ -720,7 +621,6 @@ class KG(VOI):
         ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.09),ncol=2,fontsize=50)
         
         pylab.xlim([-0.5,0.5])
-      #  plt.legend()
         plt.savefig(os.path.join(path,'%d'%n+"VOI_n.pdf"))
         plt.close(fig)
         
@@ -732,7 +632,8 @@ class PI(VOI):
         self.VOI_name="PI"
         self._GP=stat.PIGP(kernel=self._k,dimPoints=self._dimKernel,
                        Xhist=self._PointsHist, dimKernel=self._dimKernel,
-                       yHist=self._yHist,noiseHist=self._noiseHist,numberTraining=self._numberTraining,
+                       yHist=self._yHist,noiseHist=self._noiseHist,
+                       numberTraining=self._numberTraining,
                        gradXKern=gradXKern)
       
         
@@ -758,8 +659,6 @@ class PI(VOI):
         return temp1,temp10
      
       
-##evaluate the function h of the paper
-##b has been modified in affineBreakPointsPrep
 def hvoi (b,c,keep):
     M=len(keep)
     if M>1:

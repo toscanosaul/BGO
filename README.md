@@ -3,7 +3,7 @@ Saul Toscano-Palmerin
 Ph.D. Student, Cornell University 
 
 
-**Bayesian Global Optimization (BGO)**
+**Bayesian Global Optimization Library (BGO)**
 
 
 **BGO** is a Bayesian Global Optimization framework written in Python by Saul Toscano-Palmerin. The library

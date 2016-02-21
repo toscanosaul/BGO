@@ -51,7 +51,8 @@ class SLSP(Optimization):
 	self.Name="SLSP"
 	
     def opt(self,f=None,df=None,cons=None):
-        statuses = ['Converged', 'Maximum number of f evaluations reached', 'Error']
+        statuses = ['Converged', 'Maximum number of f evaluations reached',
+		    'Error']
 
 	optResult=minimize(f,self.xStart,jac=df,constraints=cons,method='SLSQP')
 
@@ -61,7 +62,7 @@ class SLSP(Optimization):
         self.fOpt = -1.0*optResult.fun
         self.gradOpt=optResult.jac
         self.nIterations=optResult.nit
-       # self.status=statuses[optResult[2]['warnflag']]
+
 	return 0
 
 
@@ -92,7 +93,8 @@ class OptBFGS(Optimization):
 	"""
         assert df!=None, "Derivative is necessary"
         
-        statuses = ['Converged', 'Maximum number of f evaluations reached', 'Error']
+        statuses = ['Converged', 'Maximum number of f evaluations reached',
+		    'Error']
     
         dictOpt={}
         if self.gtol is not None:
@@ -139,10 +141,6 @@ class OptSteepestDescent(Optimization):
         self.projectGradient=projectGradient
         
         #Golden Section
-    # Here q=(x,w)=(xNew,wNew) are vectors of inputs into Vn, (ql,qr)=xl,xr,wl,wr are upper and lower
-    # values for x,w resp., also given as vectors. However, the function only works
-    # on the dimension dim
-    #fn is the function to optimize
     def goldenSection(self,fn,q,ql,qr,dim,tol=1e-8,maxit=100):
         gr=(1+sqrt(5))/2
         ql=np.array(ql)
@@ -188,8 +186,6 @@ class OptSteepestDescent(Optimization):
                 tolMet=True
         return pm
     
-    #we are optimizing in X+alpha*g2
-    ##guarantee that the point is in the compact set ?
     def goldenSectionLineSearch (self,fns,tol,maxtry,X,g2):
          # Compute the limits for the Golden Section search
         ar=np.array([0,2*tol,4*tol])
@@ -276,7 +272,8 @@ class OptSteepestDescent(Optimization):
 		Its arguments are:
 		    x: Point where the function is evaluated.
 		    grad: True if we want the gradient; False otherwise.
-		    onlyGradient: True if we only want the gradient; False otherwise.
+		    onlyGradient: True if we only want the gradient;
+			False otherwise.
 	
 	"""
         x,g,g1,it=self.steepestAscent(f)

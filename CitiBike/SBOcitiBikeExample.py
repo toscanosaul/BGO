@@ -6,22 +6,35 @@ in which system users may remove an available bike from a station at one
 location within the city, and ride it to a station with an available dock
 in some other location within the city. The optimization problem that we
 consider is the allocation of a constrained number of bikes (6000) to available
-docks within the city at the start of rush hour, so as to minimize, in simulation,
-the expected number of potential trips in which the rider could not find an
-available bike at their preferred origination station, or could not find an
-available dock at their preferred destination station. We call such trips
+docks within the city at the start of rush hour, so as to minimize, in
+simulation, the expected number of potential trips in which the rider could not
+find an available bike at their preferred origination station, or could not find
+an available dock at their preferred destination station. We call such trips
 "negatively affected trips".
 
-To use the SBO algorithm, we need to create 6 objets:
+We optimize the objective using the SBO algorithm. In this script, we create the
+6 objets needed by this algorithm:
 
-Objobj: Objective object (See InterfaceSBO).
-miscObj: Miscellaneous object (See InterfaceSBO).
-VOIobj: Value of Information function object (See VOIGeneral).
-optObj: Opt object (See InterfaceSBO).
-statObj: Statistical object (See statGeneral).
-dataObj: Data object (See InterfaceSBO).
+Objobj: Objective object.
+miscObj: Miscellaneous object.
+VOIobj: Value of Information function object.
+optObj: Opt object.
+statObj: Statistical object.
+dataObj: Data object.
 
+For the descrition of those objects, please refer to
+https://github.com/toscanosaul/BGO/blob/master/BGO.pdf.
+
+This script is run with 6 arguments:
+
+1) Random seed (int).
+2) Number of training points (int).
+3) Number of samples to estimate the exected negatively affected trips (int).
+4) Number of iterations of the algorithm (int).
+5) Run the optimization algorithms at multiple starting points (bool).
+6) Number of points to restart the optimization algorithms (int)
 """
+
 import sys
 sys.path.append("..")
 import numpy as np
@@ -38,42 +51,45 @@ import json
 from BGO.Source import *
 import time
 
-##################
+"""
+Save arguments given by the user.
+"""
 
-nTemp=int(sys.argv[1])  #random seed 
-nTemp2=int(sys.argv[2]) #number of training points
-nTemp3=int(sys.argv[3]) #number of samples to estimate F
-nTemp4=int(sys.argv[4]) #number of iterations
-nTemp5=sys.argv[5] #True if code is run in parallel; False otherwise.
+randomSeed=int(sys.argv[1])
+trainingPoints=int(sys.argv[2])
+numberSamplesForF=int(sys.argv[3])
+numberIterations=int(sys.argv[4]) 
+parallel=sys.argv[5] 
+
+if parallel=='F':
+    parallel=False
+    numberRestarts=1
+elif parallel=='T':
+    numberRestarts=int(sys.argv[6])
+    #number of restarts for the optimization methods
+    parallel=True
 
 
-if nTemp5=='F':
-    nTemp5=False
-    nTemp6=1
-elif nTemp5=='T':
-    nTemp6=int(sys.argv[6]) #number of restarts for the optimization method
-    nTemp5=True
-
-print "random seed is "
-print nTemp
-
-randomSeed=nTemp
 np.random.seed(randomSeed)
 
 ##############
 
+"""
+n1: Dim(x)
+n2: Dim(w)
+"""
+
 n1=4
 n2=1
-numberSamplesForF=nTemp3
 
 nDays=365
 """
 We define the variables needed for the queuing simulation. 
 """
 
-g=unhappyPeople  #Simulator
+g=negativelyAffectedTrips  #Simulator
 
-#fil="2014-05PoissonParameters.txt"
+
 nSets=4
 
 fil="poissonDays.txt"
@@ -100,15 +116,6 @@ for j in range(numberStations):
     for k in range(numberStations):
 	Avertices[0].append((j,k))
 
-#A,lamb=generateSets(nSets,fil)
-
-#parameterSetsPoisson=np.zeros(n2)
-#for j in xrange(n2):
-#    parameterSetsPoisson[j]=np.sum(lamb[j])
-
-
-
-
 f = open(str(4)+"-cluster.txt", 'r')
 cluster=eval(f.read())
 f.close()
@@ -134,10 +141,6 @@ for i in xrange(n1):
 """
 We define the objective object.
 """
-
-
-
-
 
 def noisyF(XW,n,ind=None):
     """Estimate F(x,w)=E(f(x,w,z)|w)
@@ -176,7 +179,9 @@ def sampleFromXAn(n):
         for j in range(n-1):
             s[j,1]=s[j,1]*min(upperX[1],nBikes-2*lower-s[j,0])+(1-s[j,1])*lower
             s[j,1]=np.floor(s[j,1])
-            s[j,2]=s[j,2]*min(nBikes-s[j,0]-s[j,1]-lower,upperX[2])+(1-s[j,2])*max(nBikes-s[j,0]-s[j,1]-upperX[3],lower)
+	    tempMin=min(nBikes-s[j,0]-s[j,1]-lower,upperX[2])
+	    tempMax=max(nBikes-s[j,0]-s[j,1]-upperX[3],lower)
+            s[j,2]=s[j,2]*tempMin+(1-s[j,2])*tempMax
             s[j,2]=np.floor(s[j,2])
             s[j,3]=nBikes-np.sum(s[j,0:3])
         aux1=np.concatenate((s[:,0:n1-1],aux1),0)
@@ -207,7 +212,7 @@ def g2(x,w,day,i):
 
 
 
-def estimationObjective(x,N=1000):
+def estimationObjective(x,N=100):
     """Estimate g(x)=E(f(x,w,z))
       
        Args:
@@ -240,16 +245,9 @@ Objective=inter.objective(g,n1,noisyF,numberSamplesForF,sampleFromXVn,
 """
 We define the miscellaneous object.
 """
-parallel=nTemp5
 
-trainingPoints=nTemp2
-
-
-#nameDirectory="Results"+'%d'%numberSamplesForF+"AveragingSamples"+'%d'%trainingPoints+"TrainingPoints"
-#folder=os.path.join(nameDirectory,"SBO")
-
-misc=inter.Miscellaneous(randomSeed,parallel,nF=numberSamplesForF,tP=trainingPoints,
-                         prefix="2FinalNonHomogeneous011116")
+misc=inter.Miscellaneous(randomSeed,parallel,nF=numberSamplesForF,
+			 tP=trainingPoints,prefix="2FinalNonHomogeneous011116")
 
 """
 We define the data object.
@@ -269,8 +267,6 @@ XWtrain=np.concatenate((Xtrain,Wtrain),1)
 dataObj=inter.data(XWtrain,yHist=None,varHist=None)
 
 dataObj.getTrainingDataSBO(trainingPoints,noisyF,numberSamplesForF,False)
-#dataObj.getTrainingDataSBO(trainingPoints,noisyF,numberSamplesForF,True)
-
 
 """
 We define the statistical object.
@@ -278,9 +274,8 @@ We define the statistical object.
 
 dimensionKernel=n1+n2
 scaleAlpha=2000.0
-#kernel=SK.SEK(n1+n2,X=XWtrain,y=yTrain[:,0],noise=NoiseTrain,scaleAlpha=scaleAlpha)
 
-##probability of w
+
 def computeProbability(w,parLambda,nDays):
     probs=poisson.pmf(w,mu=np.array(parLambda))
     probs*=(1.0/nDays)
@@ -330,7 +325,8 @@ def B(x,XW,n1,n2,kernel,logproductExpectations=None):
 	    temp=expectation(W[j],alpha2[j],poissonParameters,nDays,probsTemp)
             logproductExpectations+=np.log(temp)
     for i in xrange(x.shape[0]):
-        results[i]=logproductExpectations+np.log(variance0)-np.sum(alpha1*((x[i,:]-X)**2))
+	compAux=np.log(variance0)-np.sum(alpha1*((x[i,:]-X)**2))
+        results[i]=logproductExpectations+compAux
     return np.exp(results)
 
 def computeLogProductExpectationsForAn(W,N,kernel):
@@ -391,7 +387,6 @@ def gradWB(new,kern,BN,keep,points):
     wNew=new[0,n1:n1+n2].reshape((1,n2))
     gradWBarray=np.zeros([len(keep),n2])
     M=len(keep)
-   # parameterLamb=parameterSetsPoisson
     X=new[0,0:n1]
     W=new[0,n1:n1+n2]
    
@@ -403,8 +398,6 @@ def gradWB(new,kern,BN,keep,points):
 	    temp=expectation(W[r],alpha2[r],poissonParameters,nDays,probsTemp)
             logproductExpectations+=np.log(temp)
 	temp=expectation2(W[i],alpha2[i],poissonParameters,nDays,probsTemp)
-    #    G=poisson(parameterLamb[i])
-    #    temp=G.dist.expect(lambda z: -2.0*alpha2[i]*(-z+W[i])*np.exp(-alpha2[i]*((z-W[i])**2)),G.args)
         productExpectations=np.exp(logproductExpectations)*temp
         for j in xrange(M):
             gradWBarray[j,i]=np.log(variance0)-np.sum(alpha1*((points[keep[j],:]-X)**2))
@@ -422,53 +415,6 @@ We define the Opt object.
 """
 
 dimXsteepestAn=n1-1 #Dimension of x when the VOI and a_{n} are optimized.
-
-def projectGradientDescent(x,direction,xo):
-    """ Project a point x to its domain (which is the simplex)
-        at each step of the gradient ascent method if needed.
-        
-       Args:
-          x: Point that is projected
-          direction: Gradient of the function at xo
-          xo: Starting point at the iteration of the gradient ascent method
-    """
-    minx=np.min(x)
-    alph=[]
-    if (minx < 0):
- 	ind=np.where(direction<0)[0]
-	quotient=xo[ind].astype(float)/direction[ind]
-	alp=-1.0*np.max(quotient)
-	alph.append(alp)
-	
-    if len(alph)==0:
-	xcop=x.copy()
-    else:
-	xcop=xo+direction*min(alph)
-	
-    if (upperX[0]<xcop[0]):
-	alp=(upperX[0]-xo[0])/direction[0]
-	alph.append(alp)
-    if (upperX[1]<xcop[1]):
-	alp=(upperX[1]-xo[1])/direction[1]
-	alph.append(alp)
-    if (upperX[2]<xcop[2]):
-	alp=(upperX[2]-xo[2])/direction[2]
-	alph.append(alp)
-	
-    if len(alph)==0:
-	xcop=xcop
-    else:
-	xcop=xo+direction*min(alph)
-	
-    if (numberBikes-np.sum(xcop[0:dimXsteepestAn])>upperX[3]):
-#	if (np.sum(direction[0:dimXsteepestAn])>0):
-	alph2=(numberBikes-float(upperX[3])-np.sum(xo[0:dimXsteepestAn]))/(np.sum(direction[0:dimXsteepestAn]).astype(float))
-	alph.append(alph2)
-#	print alph2
-
-    if (len(alph)==0):
-	return x
-    return xo+direction*min(alph)
 
 def functionGradientAscentVn(x,VOI,i,L,temp2,a,kern,XW,scratch,Bfunc,onlyGradient=False,grad=None):
     """ Evaluates the VOI and it can compute its derivative. It evaluates the VOI,
@@ -568,9 +514,7 @@ def functionGradientAscentAn(x,grad,stat,i,L,dataObj,onlyGradient=False,logprodu
     x4=np.array(numberBikes-np.sum(x[0,0:n1-1])).reshape((1,1))
     tempX=x[0:1,0:n1-1]
     x=np.concatenate((tempX,x4),1)
-  #  x4=np.array(numberBikes-np.sum(x)).reshape((1,1))
-   # x=np.concatenate((x,x4),1)
-   
+
     if onlyGradient:
         temp=stat.aN_grad(x,L,i,dataObj,grad,onlyGradient,logproductExpectations)
         t=np.diag(np.ones(n1-1))
@@ -646,10 +590,6 @@ def const9(x):
 
 def jac9(x):
     return np.array([1,1,1,0])
-
-
-
-
 
 
 cons=({'type':'ineq',
@@ -788,9 +728,11 @@ consA=({'type':'ineq',
         'fun': const9A,
        'jac': jac9A})
 
-opt=inter.opt(nTemp6,n1-1,n1-1,transformationDomainXVn,transformationDomainXAn,
-              transformationDomainW,projectGradientDescent,functionGradientAscentVn,
-              functionGradientAscentAn,conditionOpt,1.0,cons,consA,"SLSQP","SLSQP")
+opt=inter.opt(numberRestarts,n1-1,n1-1,transformationDomainXVn,
+	      transformationDomainXAn,transformationDomainW,
+	      None,functionGradientAscentVn,
+              functionGradientAscentAn,conditionOpt,1.0,cons,consA,
+	      "SLSQP","SLSQP")
 
 
 """
@@ -812,6 +754,6 @@ sboObj=SBO.SBO(**l)
 We run the SBO algorithm.
 """
 
-sboObj.SBOAlg(nTemp4,nRepeat=10,Train=True)
+sboObj.SBOAlg(numberIterations,nRepeat=1,Train=True)
 
 

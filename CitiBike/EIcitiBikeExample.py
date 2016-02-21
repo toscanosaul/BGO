@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 We consider a queuing simulation based on New York City's Bike system,
 in which system users may remove an available bike from a station at one
@@ -11,14 +13,17 @@ an available dock at their preferred destination station. We call such trips
 "negatively affected trips".
 
 We optimize the objective using the EI algorithm. In this script, we create the
-6 objets to use this algorithm:
+6 objets needed by this algorithm:
 
-Objobj: Objective object (See InterfaceSBO).
-miscObj: Miscellaneous object (See InterfaceSBO).
-VOIobj: Value of Information function object (See VOIGeneral).
-optObj: Opt object (See InterfaceSBO).
-statObj: Statistical object (See statGeneral).
-dataObj: Data object (See InterfaceSBO).
+Objobj: Objective object.
+miscObj: Miscellaneous object.
+VOIobj: Value of Information function object.
+optObj: Opt object.
+statObj: Statistical object.
+dataObj: Data object.
+
+For the descrition of those objects, please refer to
+https://github.com/toscanosaul/BGO/blob/master/BGO.pdf.
 
 This script is run with 6 arguments:
 
@@ -58,7 +63,8 @@ if parallel=='F':
     parallel=False
     numberRestarts=1
 elif parallel=='T':
-    numberRestarts=int(sys.argv[6]) #number of restarts for the optimization method
+    numberRestarts=int(sys.argv[6])
+    #number of restarts for the optimization methods
     parallel=True
 
 np.random.seed(randomSeed)

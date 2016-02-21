@@ -83,7 +83,8 @@ class SEK:
         else:
             X=X*alpha/self.scaleAlpha
             X2=X2*alpha/self.scaleAlpha
-            r=-2.*np.dot(X, X2.T) + (np.sum(np.square(X), 1)[:, None] + np.sum(np.square(X2), 1)[None, :])
+            r=-2.*np.dot(X, X2.T) + (np.sum(np.square(X), 1)[:, None] +
+                                     np.sum(np.square(X2), 1)[None, :])
             r = np.clip(r, 0, np.inf)
             return variance*np.exp(-0.5*r)
     
@@ -105,9 +106,11 @@ class SEK:
             K=self.K(X,X2,alpha=alpha,variance=variance)+np.diag(noise)
         return K
     
-    def logLikelihood(self,X,y,noise=None,alpha=None,variance=None,mu=None,gradient=False):
+    def logLikelihood(self,X,y,noise=None,alpha=None,variance=None,
+                      mu=None,gradient=False):
         """
-        Computes the log-likelihood and its gradient. The gradient is respect to  log(var)
+        Computes the log-likelihood and its gradient.
+        The gradient is respect to  log(var)
         and log(alpha**2).
         
         Args:
@@ -134,7 +137,8 @@ class SEK:
         try:
             L=np.linalg.cholesky(K)
             alp=inverseComp(L,y2)
-            logLike=-0.5*np.dot(y2,alp)-np.sum(np.log(np.diag(L)))-0.5*N*np.log(2.0*np.pi)
+            auxComp=np.sum(np.log(np.diag(L)))-0.5*N*np.log(2.0*np.pi)
+            logLike=-0.5*np.dot(y2,alp)-auxComp
             if gradient==False:
                 return logLike
             gradient=np.zeros(self.dimension+2)
@@ -143,7 +147,8 @@ class SEK:
             K2=self.A(X,alpha=alpha,variance=variance)
             for i in range(self.dimension):
                 derivative=np.zeros((N,N))
-                derivative=K2*(-(0.5/(self.scaleAlpha**2))*(alpha[i]**2)*((X[:,i][:,None]-X[:,i][None,:])**2))
+                derivative=K2*(-(0.5/(self.scaleAlpha**2))*
+                               (alpha[i]**2)*((X[:,i][:,None]-X[:,i][None,:])**2))
                 temp3=inverseComp(L,derivative)
                 gradient[i]=0.5*np.trace(np.dot(temp,derivative)-temp3)
             
@@ -159,7 +164,8 @@ class SEK:
             print "no"
             L=np.linalg.inv(K)
             det=np.linalg.det(K)
-            logLike=-0.5*np.dot(y2,np.dot(L,y2))-0.5*N*np.log(2*np.pi)-0.5*np.log(det)
+            auxComp=0.5*N*np.log(2*np.pi)-0.5*np.log(det)
+            logLike=-0.5*np.dot(y2,np.dot(L,y2))-auxComp
             if gradient==False:
                 return logLike
             gradient=np.zeros(self.dimension+2)
@@ -169,7 +175,8 @@ class SEK:
             K2=self.A(X,alpha=alpha,variance=variance)
             for i in range(self.dimension):
                 derivative=np.zeros((N,N))
-                derivative=K2*(-(0.5/(self.scaleAlpha**2))*(alpha[i]**2)*((X[:,i][:,None]-X[:,i][None,:])**2))
+                derivative=K2*(-(0.5/(self.scaleAlpha**2))*
+                               (alpha[i]**2)*((X[:,i][:,None]-X[:,i][None,:])**2))
                 temp2=np.dot(temp-L,derivative)
                 gradient[i]=0.5*np.trace(temp2)
             
@@ -181,7 +188,8 @@ class SEK:
             gradient[self.dimension+1]=0.5*np.trace(temp2)
             return logLike,gradient
             
-    def gradientLogLikelihood(self,X,y,noise=None,alpha=None,variance=None,mu=None):
+    def gradientLogLikelihood(self,X,y,noise=None,alpha=None,variance=None,
+                              mu=None):
         """
         Computes the gradient of the log-likelihood, respect to log(var)
         and log(alpha**2).
@@ -195,7 +203,8 @@ class SEK:
             -mu: Mean parameter of the GP.
             -gradient: True if we want the gradient; False otherwise.
         """
-        return self.logLikelihood(X,y,noise=noise,alpha=alpha,variance=variance,mu=mu,gradient=True)[1]
+        return self.logLikelihood(X,y,noise=noise,alpha=alpha,variance=variance,
+                                  mu=mu,gradient=True)[1]
     
     def minuslogLikelihoodParameters(self,t):
         """
@@ -207,7 +216,8 @@ class SEK:
         alpha=t[0:self.dimension]
         variance=np.exp(t[self.dimension])
         mu=t[self.dimension+1]
-        return -self.logLikelihood(self.X,self.y,self.noise,alpha=alpha,variance=variance,mu=mu)
+        return -self.logLikelihood(self.X,self.y,self.noise,alpha=alpha,
+                                   variance=variance,mu=mu)
     
     def minusGradLogLikelihoodParameters(self,t):
         """
@@ -219,11 +229,13 @@ class SEK:
         alpha=t[0:self.dimension]
         variance=np.exp(t[self.dimension])
         mu=t[self.dimension+1]
-        return -self.gradientLogLikelihood(self.X,self.y,self.noise,alpha=alpha,variance=variance,mu=mu)
+        return -self.gradientLogLikelihood(self.X,self.y,self.noise,
+                                           alpha=alpha,variance=variance,mu=mu)
 
     def optimizeKernel(self,start=None,optimizer=None,**kwargs):
         """
-        Optimize the minus log-likelihood using the optimizer method and starting in start.
+        Optimize the minus log-likelihood using the optimizer
+        method and starting in start.
         
         Args:
             start: starting point of the algorithm.
@@ -232,13 +244,15 @@ class SEK:
             
         """
         if start is None:
-            start=np.concatenate((np.log(self.alpha**2),np.log(self.variance),self.mu))
+            start=np.concatenate((np.log(self.alpha**2),
+                                  np.log(self.variance),self.mu))
         if optimizer is None:
             optimizer=self.optimizationMethod
         
         optimizer = optimization.getOptimizationMethod(optimizer)
         opt=optimizer(start,**kwargs)
-        opt.run(f=self.minuslogLikelihoodParameters,df=self.minusGradLogLikelihoodParameters)
+        opt.run(f=self.minuslogLikelihoodParameters,
+                df=self.minusGradLogLikelihoodParameters)
         self.optRuns.append(opt)
         self.optPointsArray.append(opt.xOpt)
     
@@ -280,14 +294,9 @@ class SEK:
             alpha=np.random.randn(numStarts,dim)
             variance=np.random.rand(numStarts,1)
             tempZero=np.zeros((numStarts,1))
-            st=np.concatenate((np.sqrt(np.exp(alpha)),np.exp(variance),tempZero),1)
+            st=np.concatenate((np.sqrt(np.exp(alpha)),np.exp(variance),
+                               tempZero),1)
             for i in range(numStarts):
-               # alpha=np.random.randn(dim)
-               # variance=np.random.rand(1)
-               # st=np.concatenate((np.sqrt(np.exp(alpha)),np.exp(variance),[0.0]))
-               # args2={}
-               # args2['start']=st
-               # args3.append(args2.copy())
                 job = pool.apply_async(misc.kernOptWrapper, args=(self,st[i,:],))
                 jobs.append(job)
             

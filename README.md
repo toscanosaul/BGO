@@ -6,8 +6,7 @@ Ph.D. Student, Cornell University
 **Bayesian Global Optimization (BGO)**
 
 
-**BGO** is a Bayesian Global Optimization framework written in Python,
-developed by Saul Toscano-Palmerin. The library
+**BGO** is a Bayesian Global Optimization framework written in Python by Saul Toscano-Palmerin. The library
 includes four different algorithms: Stratified Bayesian Optimization (SBO), 
 Knowledge Gradient (KG), Expected Improvement (EI) and Probability Improvement (PI).
 Please refer to the [Documentation][doc].

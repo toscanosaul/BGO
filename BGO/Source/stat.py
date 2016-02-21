@@ -217,7 +217,9 @@ class SBOGP(GaussianProcess):
         for j in xrange(m):
             for k in xrange(m):
                 for i in xrange(n+self._numberTraining):
-                    B[j+k,i]=kern.K(np.concatenate((np.array([[C[j,k]]]),np.array([[D[j,k]]])),1),np.concatenate((X[i:i+1,:],W[i:i+1,:]),1))[:,0]
+                    B[j+k,i]=kern.K(np.concatenate((np.array([[C[j,k]]]),
+                                    np.array([[D[j,k]]])),1),
+                                    np.concatenate((X[i:i+1,:],W[i:i+1,:]),1))[:,0]
                 temp2=linalg.solve_triangular(L,B[j+k:j+k+1,:].T,lower=True)
                 muN[j,k]=muStart+np.dot(temp2.T,temp1)
 
